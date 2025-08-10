@@ -21,7 +21,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h5 class="card-title">Total Study Time</h5>
-                        <h3 class="mb-0">{{ "%.1f"|format(total_time / 60) }} hours</h3>
+                        <h3 class="mb-0">{{ total_hours }} hours</h3>
                     </div>
                     <i data-feather="clock" style="width: 32px; height: 32px;"></i>
                 </div>
@@ -47,7 +47,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h5 class="card-title">Average Session</h5>
-                        <h3 class="mb-0">{{ "%.0f"|format(total_time / total_sessions if total_sessions > 0 else 0) }} min</h3>
+                        <h3 class="mb-0">{{ avg_session_length }} min</h3>
                     </div>
                     <i data-feather="trending-up" style="width: 32px; height: 32px;"></i>
                 </div>
@@ -87,7 +87,7 @@
                                                 {{ session.project.title }}
                                             </a>
                                         </td>
-                                        <td>{{ session.duration_minutes }} min</td>
+                                        <td>{{ session.get_duration_formatted() }}</td>
                                         <td>{{ session.description or '-' }}</td>
                                     </tr>
                                 {% endfor %}
@@ -114,16 +114,16 @@
                 </h6>
             </div>
             <div class="card-body">
-                {% if project_time %}
-                    {% for project_id, time in project_time.items() %}
+                {% if project_stats %}
+                    {% for project, stats in project_stats.items() %}
                         <div class="mb-3">
                             <div class="d-flex justify-content-between mb-1">
-                                <small>Project {{ project_id }}</small>
-                                <small>{{ "%.1f"|format(time / 60) }}h</small>
+                                <small>{{ project }}</small>
+                                <small>{{ "%.1f"|format(stats.minutes / 60) }}h</small>
                             </div>
                             <div class="progress" style="height: 6px;">
                                 <div class="progress-bar" role="progressbar" 
-                                     style="width: {{ (time / total_time * 100) if total_time > 0 else 0 }}%"></div>
+                                     style="width: {{ (stats.minutes / total_minutes * 100) if total_minutes > 0 else 0 }}%"></div>
                             </div>
                         </div>
                     {% endfor %}
