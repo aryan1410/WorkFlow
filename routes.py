@@ -322,10 +322,10 @@ def delete_project(project_id):
 @login_required
 def new_task(project_id):
     """Create a new task for a project"""
-    project = Project.query.filter_by(id=project_id, user_id=current_user.id).first()
-    if not project:
-        flash('Project not found.', 'error')
-        return redirect(url_for('index'))
+    project = Project.query.get_or_404(project_id)
+    if not project.can_user_edit(current_user):
+        flash('You do not have permission to add tasks to this project.', 'error')
+        return redirect(url_for('project_detail', project_id=project_id))
     
     title = request.form.get('title', '').strip()
     description = request.form.get('description', '').strip()

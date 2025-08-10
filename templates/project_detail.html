@@ -116,7 +116,7 @@
                             <div class="card mb-4">
                                 <div class="card-body">
                                     <h6 class="card-title">Add New Task</h6>
-                                    <form method="POST" action="{{ url_for('add_task', project_id=project.id) }}">
+                                    <form method="POST" action="{{ url_for('new_task', project_id=project.id) }}">
                                         {{ form.hidden_tag() if form }}
                                         <div class="row">
                                             <div class="col-md-6">
