@@ -141,9 +141,9 @@ function setupConfirmationDialogs() {
     });
     
     // Delete confirmations
-    const deleteButtons = document.querySelectorAll('button[type="submit"]:contains("Delete"), a:contains("Delete")');
+    const deleteButtons = document.querySelectorAll('button[type="submit"]');
     deleteButtons.forEach(function(button) {
-        if (!button.hasAttribute('data-confirm')) {
+        if (button.textContent.includes('Delete') && !button.hasAttribute('data-confirm')) {
             button.addEventListener('click', function(e) {
                 const itemName = this.getAttribute('data-item-name') || 'this item';
                 if (!confirm(`Are you sure you want to delete ${itemName}? This action cannot be undone.`)) {

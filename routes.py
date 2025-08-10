@@ -28,7 +28,8 @@ def index():
                          total_projects=total_projects,
                          completed_projects=completed_projects,
                          in_progress_projects=in_progress_projects,
-                         overdue_projects=overdue_projects)
+                         overdue_projects=overdue_projects,
+                         today=datetime.now())
 
 @app.route('/project/new', methods=['GET', 'POST'])
 def new_project():
@@ -98,7 +99,8 @@ def project_detail(project_id):
                          tasks=tasks,
                          total_tasks=total_tasks,
                          completed_tasks=completed_tasks,
-                         progress_percentage=progress_percentage)
+                         progress_percentage=progress_percentage,
+                         today=datetime.now())
 
 @app.route('/project/<int:project_id>/edit', methods=['GET', 'POST'])
 def edit_project(project_id):
