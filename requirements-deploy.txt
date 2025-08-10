@@ -1,0 +1,34 @@
+# Academic Project Tracker - Deployment Dependencies
+# Copy these dependencies to your requirements.txt file for deployment
+
+# Core Flask Framework
+Flask>=3.1.1
+Flask-Login>=0.6.3
+Flask-SQLAlchemy>=3.1.1
+Flask-WTF>=1.2.2
+
+# Database and ORM
+SQLAlchemy>=2.0.42
+psycopg2-binary>=2.9.10
+
+# Forms and Validation
+WTForms>=3.2.1
+email-validator>=2.2.0
+
+# Security and Utilities
+Werkzeug>=3.1.3
+itsdangerous>=2.2.0
+
+# Image Processing for File Uploads
+Pillow>=11.3.0
+
+# Email Services (Optional)
+sendgrid>=6.12.4
+
+# Production WSGI Server
+gunicorn>=23.0.0
+
+# OAuth and JWT (for future authentication enhancements)
+PyJWT>=2.10.1
+oauthlib>=3.3.1
+flask-dance>=7.1.0

@@ -130,6 +130,8 @@ academic-project-tracker/
 ├── replit.md                  # Project documentation and preferences
 ├── pyproject.toml            # Python dependencies and project metadata
 ├── uv.lock                   # Dependency lock file
+├── requirements-deploy.txt   # Deployment dependencies list
+├── DEPLOYMENT.md            # Comprehensive deployment guide
 ├── .replit                   # Replit configuration
 └── README.md                 # This file
 ```
@@ -174,9 +176,14 @@ academic-project-tracker/
 
 2. **Install dependencies**
    ```bash
-   pip install -r requirements.txt
-   # or using uv
+   # Using uv (recommended for Replit)
    uv sync
+   
+   # Or using pip with requirements file
+   pip install -r requirements-deploy.txt
+   
+   # Or install manually
+   pip install flask flask-login flask-sqlalchemy flask-wtf sqlalchemy psycopg2-binary wtforms email-validator werkzeug itsdangerous pillow gunicorn
    ```
 
 3. **Set up environment variables**
@@ -283,6 +290,21 @@ If you encounter any issues or have questions:
 2. Create a new issue with detailed information
 3. Include error messages and steps to reproduce
 4. For feature requests, provide clear use cases and benefits
+
+## 🚀 Deployment
+
+For detailed deployment instructions and configuration options, see [DEPLOYMENT.md](DEPLOYMENT.md).
+
+### Quick Deploy Options
+
+- **Replit**: Fork this repository and click Run (fully configured)
+- **Heroku**: `git push heroku main` after configuring PostgreSQL addon
+- **Docker**: Use the provided Dockerfile for containerized deployment
+- **Traditional VPS**: Follow the Ubuntu/Debian setup guide in DEPLOYMENT.md
+
+### Dependencies
+
+All dependencies are listed in `pyproject.toml` for uv/pip installation, or use `requirements-deploy.txt` for traditional deployments.
 
 ## 🔮 Future Enhancements
 
