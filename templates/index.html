@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Academic Project Tracker{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2">
+                <i data-feather="layout-dashboard" class="me-2"></i>
+                Project Dashboard
+            </h1>
+            <a href="{{ url_for('new_project') }}" class="btn btn-primary">
+                <i data-feather="plus" class="me-2"></i>
+                New Project
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title">Total Projects</h5>
+                        <h3 class="mb-0">{{ total_projects }}</h3>
+                    </div>
+                    <i data-feather="folder" style="width: 32px; height: 32px;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title">Completed</h5>
+                        <h3 class="mb-0">{{ completed_projects }}</h3>
+                    </div>
+                    <i data-feather="check-circle" style="width: 32px; height: 32px;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title">In Progress</h5>
+                        <h3 class="mb-0">{{ in_progress_projects }}</h3>
+                    </div>
+                    <i data-feather="clock" style="width: 32px; height: 32px;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title">Overdue</h5>
+                        <h3 class="mb-0">{{ overdue_projects }}</h3>
+                    </div>
+                    <i data-feather="alert-triangle" style="width: 32px; height: 32px;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Projects by Course -->
+{% if projects_by_course %}
+    {% for course, course_projects in projects_by_course.items() %}
+        <div class="mb-4">
+            <h3 class="h4 mb-3">
+                <i data-feather="bookmark" class="me-2"></i>
+                {{ course }}
+            </h3>
+            
+            <div class="row">
+                {% for project in course_projects %}
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <a href="{{ url_for('project_detail', project_id=project.id) }}" class="text-decoration-none">
+                                        {{ project.title }}
+                                    </a>
+                                </h5>
+                                
+                                {% if project.description %}
+                                    <p class="card-text text-muted small">{{ project.description[:100] }}{% if project.description|length > 100 %}...{% endif %}</p>
+                                {% endif %}
+                                
+                                <div class="mb-2">
+                                    {% if project.status.value == 'Completed' %}
+                                        <span class="badge bg-success">
+                                            <i data-feather="check-circle" style="width: 12px; height: 12px;" class="me-1"></i>
+                                            {{ project.status.value }}
+                                        </span>
+                                    {% elif project.status.value == 'In Progress' %}
+                                        <span class="badge bg-primary">
+                                            <i data-feather="clock" style="width: 12px; height: 12px;" class="me-1"></i>
+                                            {{ project.status.value }}
+                                        </span>
+                                    {% elif project.status.value == 'On Hold' %}
+                                        <span class="badge bg-warning">
+                                            <i data-feather="pause-circle" style="width: 12px; height: 12px;" class="me-1"></i>
+                                            {{ project.status.value }}
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">
+                                            <i data-feather="circle" style="width: 12px; height: 12px;" class="me-1"></i>
+                                            {{ project.status.value }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                
+                                {% if project.deadline %}
+                                    <p class="card-text small">
+                                        <i data-feather="calendar" style="width: 14px; height: 14px;" class="me-1"></i>
+                                        Due: {{ project.deadline.strftime('%B %d, %Y') }}
+                                        {% if project.deadline < today and project.status.value != 'Completed' %}
+                                            <span class="text-danger">(Overdue)</span>
+                                        {% endif %}
+                                    </p>
+                                {% endif %}
+                            </div>
+                            <div class="card-footer bg-transparent">
+                                <div class="d-flex justify-content-between">
+                                    <a href="{{ url_for('project_detail', project_id=project.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i data-feather="eye" style="width: 14px; height: 14px;" class="me-1"></i>
+                                        View
+                                    </a>
+                                    <a href="{{ url_for('edit_project', project_id=project.id) }}" class="btn btn-sm btn-outline-secondary">
+                                        <i data-feather="edit" style="width: 14px; height: 14px;" class="me-1"></i>
+                                        Edit
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endfor %}
+{% else %}
+    <!-- Empty State -->
+    <div class="text-center py-5">
+        <i data-feather="folder" style="width: 64px; height: 64px;" class="text-muted mb-3"></i>
+        <h3 class="text-muted">No Projects Yet</h3>
+        <p class="text-muted mb-4">Create your first academic project to get started organizing your coursework.</p>
+        <a href="{{ url_for('new_project') }}" class="btn btn-primary">
+            <i data-feather="plus" class="me-2"></i>
+            Create Your First Project
+        </a>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Auto-refresh badges and status indicators
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add current date for overdue checking
+        window.today = new Date();
+        
+        // Initialize tooltips if needed
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>
+{% endblock %}
