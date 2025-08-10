@@ -25,15 +25,20 @@ Preferred communication style: Simple, everyday language.
 - **Status Management**: Enums for consistent status and priority handling (ProjectStatus, TaskStatus, Priority)
 
 ### Data Storage Solution
-- **Storage Type**: In-memory storage using Flask application configuration
-- **Data Structure**: Lists stored in app.config for projects and tasks with auto-incrementing counters
-- **Data Persistence**: No persistent database - data resets on application restart (MVP approach)
-- **Model Serialization**: Built-in to_dict() and from_dict() methods for data conversion
+- **Storage Type**: PostgreSQL database with SQLAlchemy ORM
+- **Data Persistence**: Full database persistence with relationship management
+- **User Data Isolation**: All user data (projects, tasks, courses, study sessions) linked to authenticated users
+- **Model Architecture**: SQLAlchemy models with proper foreign key relationships and cascading deletes
+- **Database Features**: Indexes on email fields, enum constraints for status fields, timestamp tracking
 
 ### Authentication and Authorization
-- **Current State**: No authentication system implemented
-- **Session Security**: Basic session management with secret key configuration
-- **Access Control**: Open access to all features without user restrictions
+- **Authentication System**: Custom user authentication with Flask-Login
+- **User Registration**: Email-based registration with encrypted password storage
+- **Password Security**: Werkzeug password hashing with strength validation requirements
+- **Email Verification**: Token-based email verification system (placeholder implementation)
+- **Session Management**: Flask sessions with CSRF protection via Flask-WTF
+- **Access Control**: User-specific data isolation - users can only access their own projects and data
+- **Forms Security**: All forms protected with CSRF tokens and server-side validation
 
 ### Application Features
 - **Project Management**: CRUD operations for academic projects with course categorization
@@ -52,6 +57,12 @@ Preferred communication style: Simple, everyday language.
 
 ### Backend Dependencies
 - **Flask**: Core web framework for Python
+- **Flask-Login**: User session management and authentication
+- **Flask-WTF**: Form handling and CSRF protection
+- **Flask-SQLAlchemy**: Database ORM for PostgreSQL
+- **Werkzeug**: Password hashing and security utilities
+- **email-validator**: Email address validation
+- **itsdangerous**: Secure token generation for email verification
 - **Python Standard Library**: datetime, enum, os, logging modules for core functionality
 
 ### Development Dependencies
