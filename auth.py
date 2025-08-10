@@ -123,15 +123,7 @@ def send_password_reset_email(user_email, reset_url):
         return True
 
 
-def verify_email_required(f):
-    """Decorator to require email verification"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if current_user.is_authenticated and not current_user.is_verified:
-            flash('Please verify your email address to access this feature.', 'warning')
-            return redirect(url_for('verification_required'))
-        return f(*args, **kwargs)
-    return decorated_function
+
 
 
 def validate_email_address(email):

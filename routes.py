@@ -7,7 +7,7 @@ import os
 from app import app, db
 from models import (Project, Task, ProjectStatus, TaskStatus, Priority, ProjectNote, StudySession, Course, User,
                    ProjectFile, ProjectCollaborator, ProjectComment, ActivityLog)
-from auth import verify_email_required, generate_verification_url, verify_email_token, send_verification_email, validate_password_strength
+from auth import generate_verification_url, verify_email_token, send_verification_email, validate_password_strength
 from forms import (LoginForm, RegisterForm, ForgotPasswordForm, ResetPasswordForm, ChangePasswordForm, ProfileForm,
                   FileUploadForm, CollaboratorInviteForm, CommentForm, SearchForm)
 from utils import save_uploaded_file, format_file_size, get_file_icon, log_activity
@@ -91,18 +91,15 @@ def register():
         user = User(
             email=form.email.data.lower(),
             first_name=form.first_name.data,
-            last_name=form.last_name.data
+            last_name=form.last_name.data,
+            is_verified=True
         )
         user.set_password(form.password.data)
         
         db.session.add(user)
         db.session.commit()
         
-        # Generate and send verification email
-        verification_url = generate_verification_url(user.email)
-        send_verification_email(user.email, verification_url)
-        
-        flash('Registration successful! Please check your email to verify your account.', 'success')
+        flash('Registration successful! You can now log in to your account.', 'success')
         return redirect(url_for('login'))
     
     return render_template('auth/register.html', form=form)
@@ -117,51 +114,7 @@ def logout():
     return redirect(url_for('index'))
 
 
-@app.route('/verify-email/<token>')
-def verify_email(token):
-    """Verify email address"""
-    email = verify_email_token(token)
-    if not email:
-        flash('Invalid or expired verification link.', 'error')
-        return redirect(url_for('login'))
-    
-    user = User.query.filter_by(email=email).first()
-    if not user:
-        flash('User not found.', 'error')
-        return redirect(url_for('login'))
-    
-    if user.is_verified:
-        flash('Email already verified.', 'info')
-        return redirect(url_for('login'))
-    
-    user.is_verified = True
-    user.verification_token = None
-    db.session.commit()
-    
-    flash('Email verified successfully! You can now access all features.', 'success')
-    return redirect(url_for('login'))
-
-
-@app.route('/verification-required')
-@login_required
-def verification_required():
-    """Page shown when email verification is required"""
-    return render_template('auth/verification_required.html')
-
-
-@app.route('/resend-verification')
-@login_required
-def resend_verification():
-    """Resend verification email"""
-    if current_user.is_verified:
-        flash('Your email is already verified.', 'info')
-        return redirect(url_for('index'))
-    
-    verification_url = generate_verification_url(current_user.email)
-    send_verification_email(current_user.email, verification_url)
-    
-    flash('Verification email sent! Please check your email.', 'success')
-    return redirect(url_for('verification_required'))
+# Email verification routes removed for simplicity
 
 
 @app.route('/forgot-password', methods=['GET', 'POST'])
@@ -182,7 +135,6 @@ def forgot_password():
 # Project Management Routes
 @app.route('/project/new', methods=['GET', 'POST'])
 @login_required
-@verify_email_required
 def new_project():
     """Create a new project"""
     if request.method == 'POST':
@@ -238,7 +190,6 @@ def new_project():
 
 @app.route('/project/<int:project_id>')
 @login_required
-@verify_email_required
 def project_detail(project_id):
     """View project details with tasks, files, collaborators, and comments"""
     project = Project.query.get_or_404(project_id)
@@ -293,7 +244,6 @@ def project_detail(project_id):
 # Continue with other project routes...
 @app.route('/project/<int:project_id>/edit', methods=['GET', 'POST'])
 @login_required
-@verify_email_required
 def edit_project(project_id):
     """Edit an existing project"""
     project = Project.query.filter_by(id=project_id, user_id=current_user.id).first()
@@ -351,7 +301,6 @@ def edit_project(project_id):
 
 @app.route('/project/<int:project_id>/delete', methods=['POST'])
 @login_required
-@verify_email_required
 def delete_project(project_id):
     """Delete a project and all its tasks"""
     project = Project.query.filter_by(id=project_id, user_id=current_user.id).first()
@@ -371,7 +320,6 @@ def delete_project(project_id):
 # Task Management Routes
 @app.route('/project/<int:project_id>/task/new', methods=['POST'])
 @login_required
-@verify_email_required
 def new_task(project_id):
     """Create a new task for a project"""
     project = Project.query.filter_by(id=project_id, user_id=current_user.id).first()
@@ -413,7 +361,6 @@ def new_task(project_id):
 
 @app.route('/task/<int:task_id>/update_status', methods=['POST'])
 @login_required
-@verify_email_required
 def update_task_status(task_id):
     """Update task status"""
     task = Task.query.join(Project).filter(
@@ -439,7 +386,6 @@ def update_task_status(task_id):
 
 @app.route('/task/<int:task_id>/delete', methods=['POST'])
 @login_required
-@verify_email_required
 def delete_task(task_id):
     """Delete a task"""
     task = Task.query.join(Project).filter(
@@ -462,7 +408,6 @@ def delete_task(task_id):
 # Study Session Routes
 @app.route('/project/<int:project_id>/study', methods=['POST'])
 @login_required
-@verify_email_required
 def log_study_session(project_id):
     """Log a study session for a project"""
     project = Project.query.filter_by(id=project_id, user_id=current_user.id).first()
@@ -492,7 +437,6 @@ def log_study_session(project_id):
 
 @app.route('/study-analytics')
 @login_required
-@verify_email_required
 def study_analytics():
     """View study analytics dashboard"""
     # Get study sessions for the last 30 days
@@ -524,7 +468,6 @@ def study_analytics():
 # Project Notes Routes
 @app.route('/project/<int:project_id>/note/new', methods=['POST'])
 @login_required
-@verify_email_required
 def add_project_note(project_id):
     """Add a note to a project"""
     project = Project.query.filter_by(id=project_id, user_id=current_user.id).first()
@@ -550,7 +493,6 @@ def add_project_note(project_id):
 
 @app.route('/note/<int:note_id>/delete', methods=['POST'])
 @login_required
-@verify_email_required
 def delete_project_note(note_id):
     """Delete a project note"""
     note = ProjectNote.query.join(Project).filter(
@@ -573,7 +515,6 @@ def delete_project_note(note_id):
 # Course Management Routes
 @app.route('/courses')
 @login_required
-@verify_email_required
 def manage_courses():
     """Manage user courses"""
     courses = Course.query.filter_by(user_id=current_user.id).order_by(Course.year.desc(), Course.semester).all()
@@ -582,7 +523,6 @@ def manage_courses():
 
 @app.route('/course/new', methods=['POST'])
 @login_required
-@verify_email_required
 def add_course():
     """Add a new course"""
     name = request.form.get('name', '').strip()
@@ -648,7 +588,6 @@ def profile():
 # File management routes
 @app.route('/project/<int:project_id>/upload', methods=['POST'])
 @login_required
-@verify_email_required
 def upload_file(project_id):
     """Upload file to project"""
     project = Project.query.get_or_404(project_id)
@@ -695,7 +634,6 @@ def upload_file(project_id):
 
 @app.route('/project/<int:project_id>/file/<int:file_id>/download')
 @login_required
-@verify_email_required
 def download_file(project_id, file_id):
     """Download project file"""
     project = Project.query.get_or_404(project_id)
@@ -716,7 +654,6 @@ def download_file(project_id, file_id):
 
 @app.route('/project/<int:project_id>/file/<int:file_id>/delete', methods=['POST'])
 @login_required
-@verify_email_required
 def delete_file(project_id, file_id):
     """Delete project file"""
     project = Project.query.get_or_404(project_id)
@@ -750,7 +687,6 @@ def delete_file(project_id, file_id):
 # Collaboration routes
 @app.route('/project/<int:project_id>/invite', methods=['POST'])
 @login_required
-@verify_email_required
 def invite_collaborator(project_id):
     """Invite collaborator to project"""
     project = Project.query.get_or_404(project_id)
@@ -797,7 +733,6 @@ def invite_collaborator(project_id):
 
 @app.route('/collaboration/<int:collab_id>/accept')
 @login_required
-@verify_email_required
 def accept_collaboration(collab_id):
     """Accept collaboration invitation"""
     collaboration = ProjectCollaborator.query.get_or_404(collab_id)
@@ -820,7 +755,6 @@ def accept_collaboration(collab_id):
 
 @app.route('/collaboration/<int:collab_id>/decline')
 @login_required
-@verify_email_required
 def decline_collaboration(collab_id):
     """Decline collaboration invitation"""
     collaboration = ProjectCollaborator.query.get_or_404(collab_id)
@@ -839,7 +773,6 @@ def decline_collaboration(collab_id):
 # Comment routes
 @app.route('/project/<int:project_id>/comment', methods=['POST'])
 @login_required
-@verify_email_required
 def add_comment(project_id):
     """Add comment to project"""
     project = Project.query.get_or_404(project_id)
@@ -871,7 +804,6 @@ def add_comment(project_id):
 # Search routes
 @app.route('/search')
 @login_required
-@verify_email_required
 def search():
     """Search projects, tasks, and collaborators"""
     form = SearchForm()

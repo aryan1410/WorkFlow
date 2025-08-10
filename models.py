@@ -13,7 +13,7 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(256), nullable=False)
     first_name = db.Column(db.String(50), nullable=True)
     last_name = db.Column(db.String(50), nullable=True)
-    is_verified = db.Column(db.Boolean, default=False, nullable=False)
+    is_verified = db.Column(db.Boolean, default=True, nullable=False)
     verification_token = db.Column(db.String(100), nullable=True)
     reset_token = db.Column(db.String(100), nullable=True)
     reset_token_expires = db.Column(db.DateTime, nullable=True)

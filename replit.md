@@ -38,7 +38,7 @@ Preferred communication style: Simple, everyday language.
 - **Authentication System**: Custom user authentication with Flask-Login
 - **User Registration**: Email-based registration with encrypted password storage
 - **Password Security**: Werkzeug password hashing with strength validation requirements
-- **Email Verification**: Token-based email verification system (placeholder implementation)
+- **Email Verification**: Removed for simplicity - all users are verified by default
 - **Session Management**: Flask sessions with CSRF protection via Flask-WTF
 - **Access Control**: User-specific data isolation - users can only access their own projects and data
 - **Forms Security**: All forms protected with CSRF tokens and server-side validation
@@ -52,7 +52,7 @@ Preferred communication style: Simple, everyday language.
 - **Course Organization**: Projects grouped by academic course or category
 - **File Upload System**: Secure file upload with size limits, type validation, and thumbnail generation for images
 - **Collaborative Features**: Multi-user project collaboration with role-based permissions (owner, collaborator, viewer)
-- **Email Verification**: SendGrid-powered email verification system for user registration
+- **Email Verification**: Removed for simplicity - all users are automatically verified
 - **Comment System**: Project-based discussion threads for team communication
 - **Activity Logging**: Comprehensive audit trail of all project activities and changes
 - **Advanced Search**: Full-text search across projects, tasks, files, and collaborators
