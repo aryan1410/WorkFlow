@@ -57,6 +57,9 @@ Preferred communication style: Simple, everyday language.
 - **Activity Logging**: Comprehensive audit trail of all project activities and changes
 - **Advanced Search**: Full-text search across projects, tasks, files, and collaborators
 - **Permission Management**: Granular access control for project viewing and editing
+- **Study Analytics**: Comprehensive study session tracking with visualizations and progress charts
+- **Study Timer**: Built-in timer functionality for tracking study sessions with real-time clock
+- **Data Visualization**: Chart.js powered charts for weekly study patterns and project breakdowns
 
 ## External Dependencies
 

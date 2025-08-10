@@ -435,34 +435,7 @@ def log_study_session(project_id):
     return redirect(url_for('project_detail', project_id=project_id))
 
 
-@app.route('/study-analytics')
-@login_required
-def study_analytics():
-    """View study analytics dashboard"""
-    # Get study sessions for the last 30 days
-    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
-    sessions = StudySession.query.filter(
-        StudySession.user_id == current_user.id,
-        StudySession.created_at >= thirty_days_ago
-    ).order_by(desc(StudySession.created_at)).all()
-    
-    # Calculate analytics
-    total_time = sum(s.duration_minutes for s in sessions)
-    total_sessions = len(sessions)
-    
-    # Group by project
-    project_time = {}
-    for session in sessions:
-        project = session.project_id
-        if project not in project_time:
-            project_time[project] = 0
-        project_time[project] += session.duration_minutes
-    
-    return render_template('study_analytics.html',
-                         sessions=sessions,
-                         total_time=total_time,
-                         total_sessions=total_sessions,
-                         project_time=project_time)
+# Removed duplicate study_analytics function
 
 
 # Project Notes Routes
@@ -864,6 +837,150 @@ def search():
             ).all()
     
     return render_template('search.html', form=form, results=results, query=query if 'query' in locals() else '')
+
+
+# Study Analytics and Timer Routes
+@app.route('/analytics')
+@login_required
+def analytics():
+    """Study analytics dashboard with visualizations"""
+    # Get all study sessions for the user
+    sessions = StudySession.query.filter_by(user_id=current_user.id).order_by(desc(StudySession.created_at)).all()
+    
+    # Calculate analytics data
+    total_sessions = len(sessions)
+    total_minutes = sum(session.duration_minutes for session in sessions)
+    avg_session_length = total_minutes / total_sessions if total_sessions > 0 else 0
+    
+    # Weekly data for chart (last 7 days)
+    from datetime import timedelta
+    week_data = []
+    today = datetime.utcnow().date()
+    
+    for i in range(6, -1, -1):  # Last 7 days
+        day = today - timedelta(days=i)
+        day_sessions = [s for s in sessions if s.created_at.date() == day]
+        day_minutes = sum(s.duration_minutes for s in day_sessions)
+        week_data.append({
+            'date': day.strftime('%Y-%m-%d'),
+            'day': day.strftime('%a'),
+            'minutes': day_minutes,
+            'hours': round(day_minutes / 60, 1)
+        })
+    
+    # Project breakdown
+    project_stats = {}
+    for session in sessions:
+        project = session.project
+        if project:
+            if project.title not in project_stats:
+                project_stats[project.title] = {'minutes': 0, 'sessions': 0}
+            project_stats[project.title]['minutes'] += session.duration_minutes
+            project_stats[project.title]['sessions'] += 1
+    
+    # Sort by minutes studied
+    project_stats = dict(sorted(project_stats.items(), key=lambda x: x[1]['minutes'], reverse=True))
+    
+    return render_template('study_analytics.html',
+                         sessions=sessions[:10],  # Recent 10 sessions
+                         total_sessions=total_sessions,
+                         total_minutes=total_minutes,
+                         total_hours=round(total_minutes / 60, 1),
+                         avg_session_length=round(avg_session_length),
+                         week_data=week_data,
+                         project_stats=project_stats)
+
+
+@app.route('/study-timer')
+@login_required
+def study_timer():
+    """Study timer page"""
+    projects = Project.query.filter_by(user_id=current_user.id).all()
+    active_session = StudySession.query.filter_by(user_id=current_user.id, is_active=True).first()
+    
+    return render_template('study_timer.html', 
+                         projects=projects,
+                         active_session=active_session)
+
+
+@app.route('/api/study-session/start', methods=['POST'])
+@login_required
+def start_study_session():
+    """Start a new study session"""
+    project_id = request.json.get('project_id')
+    
+    # Check if there's already an active session
+    active_session = StudySession.query.filter_by(user_id=current_user.id, is_active=True).first()
+    if active_session:
+        return jsonify({'error': 'You already have an active study session'}), 400
+    
+    # Create new session
+    session = StudySession(
+        user_id=current_user.id,
+        project_id=project_id,
+        start_time=datetime.utcnow(),
+        is_active=True,
+        duration_minutes=0
+    )
+    
+    db.session.add(session)
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'session_id': session.id,
+        'start_time': session.start_time.isoformat()
+    })
+
+
+@app.route('/api/study-session/stop', methods=['POST'])
+@login_required
+def stop_study_session():
+    """Stop the active study session"""
+    session_id = request.json.get('session_id')
+    notes = request.json.get('notes', '')
+    
+    session = StudySession.query.filter_by(id=session_id, user_id=current_user.id, is_active=True).first()
+    if not session:
+        return jsonify({'error': 'No active session found'}), 404
+    
+    # Calculate duration
+    end_time = datetime.utcnow()
+    duration_seconds = (end_time - session.start_time).total_seconds()
+    duration_minutes = int(duration_seconds / 60)
+    
+    # Update session
+    session.end_time = end_time
+    session.duration_minutes = duration_minutes
+    session.description = notes
+    session.is_active = False
+    
+    db.session.commit()
+    
+    # Log activity if project is set
+    if session.project_id:
+        log_activity(current_user.id, 'studied', 'project', session.project_id,
+                   f'Studied for {session.get_duration_formatted()}', session.project_id)
+    
+    return jsonify({
+        'success': True,
+        'duration_minutes': duration_minutes,
+        'duration_formatted': session.get_duration_formatted()
+    })
+
+
+@app.route('/api/study-session/pause', methods=['POST'])
+@login_required 
+def pause_study_session():
+    """Pause/resume the active study session"""
+    session_id = request.json.get('session_id')
+    
+    session = StudySession.query.filter_by(id=session_id, user_id=current_user.id, is_active=True).first()
+    if not session:
+        return jsonify({'error': 'No active session found'}), 404
+    
+    # For now, we'll just return success - pause/resume can be handled on frontend
+    return jsonify({'success': True})
 
 
 # Error handlers

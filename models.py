@@ -156,6 +156,9 @@ class StudySession(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     duration_minutes = db.Column(db.Integer, nullable=False)
     description = db.Column(db.Text)
+    start_time = db.Column(db.DateTime, nullable=True)
+    end_time = db.Column(db.DateTime, nullable=True)
+    is_active = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Foreign key to Project
@@ -163,6 +166,14 @@ class StudySession(db.Model):
     
     # Foreign key to User
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    def get_duration_formatted(self):
+        """Get formatted duration string"""
+        hours = self.duration_minutes // 60
+        minutes = self.duration_minutes % 60
+        if hours > 0:
+            return f"{hours}h {minutes}m"
+        return f"{minutes}m"
 
 
 class Course(db.Model):

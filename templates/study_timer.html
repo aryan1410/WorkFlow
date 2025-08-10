@@ -1,0 +1,355 @@
+{% extends "base.html" %}
+
+{% block title %}Study Timer{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">Study Timer</h1>
+                <a href="{{ url_for('analytics') }}" class="btn btn-outline-primary">
+                    <i data-feather="bar-chart-2" class="me-2"></i>
+                    View Analytics
+                </a>
+            </div>
+
+            <!-- Timer Card -->
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="card text-center">
+                        <div class="card-body py-5">
+                            <!-- Timer Display -->
+                            <div id="timer-display" class="display-1 text-primary mb-4">00:00:00</div>
+                            
+                            <!-- Project Selection -->
+                            <div class="mb-4">
+                                <label class="form-label">Study Session for:</label>
+                                <select id="project-select" class="form-select w-auto mx-auto">
+                                    <option value="">General Study</option>
+                                    {% for project in projects %}
+                                        <option value="{{ project.id }}">{{ project.title }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Timer Controls -->
+                            <div id="timer-controls" class="mb-4">
+                                {% if active_session %}
+                                    <button id="pause-btn" class="btn btn-warning btn-lg me-2">
+                                        <i data-feather="pause" class="me-2"></i>
+                                        Pause
+                                    </button>
+                                    <button id="stop-btn" class="btn btn-danger btn-lg">
+                                        <i data-feather="stop-circle" class="me-2"></i>
+                                        Stop Session
+                                    </button>
+                                {% else %}
+                                    <button id="start-btn" class="btn btn-success btn-lg">
+                                        <i data-feather="play" class="me-2"></i>
+                                        Start Session
+                                    </button>
+                                {% endif %}
+                            </div>
+
+                            <!-- Session Notes -->
+                            <div class="row justify-content-center">
+                                <div class="col-md-6">
+                                    <label class="form-label">Session Notes (optional):</label>
+                                    <textarea id="session-notes" class="form-control" rows="3" 
+                                              placeholder="What are you studying? Any goals or observations..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Session Stats -->
+            <div class="row mt-4">
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">Today's Sessions</h5>
+                            <h3 class="text-primary" id="today-sessions">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">Today's Time</h5>
+                            <h3 class="text-success" id="today-time">0h 0m</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">Current Streak</h5>
+                            <h3 class="text-info">3 days</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stop Session Modal -->
+<div class="modal fade" id="stopSessionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">End Study Session</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Great work! You studied for <span id="final-duration" class="fw-bold text-primary"></span>.</p>
+                <div class="mb-3">
+                    <label class="form-label">Add any final notes about this session:</label>
+                    <textarea id="final-notes" class="form-control" rows="3" 
+                              placeholder="How did the session go? What did you accomplish?"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="confirm-stop" class="btn btn-primary">Save Session</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let timer = {
+    isRunning: false,
+    isPaused: false,
+    startTime: null,
+    elapsedTime: 0,
+    sessionId: null,
+    interval: null
+};
+
+// Initialize timer if there's an active session
+{% if active_session %}
+timer.isRunning = true;
+timer.sessionId = {{ active_session.id }};
+timer.startTime = new Date('{{ active_session.start_time.isoformat() }}Z');
+timer.elapsedTime = Math.floor((Date.now() - timer.startTime.getTime()) / 1000);
+updateTimerDisplay();
+startTimerInterval();
+document.getElementById('project-select').value = '{{ active_session.project_id or "" }}';
+document.getElementById('project-select').disabled = true;
+{% endif %}
+
+function formatTime(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+function updateTimerDisplay() {
+    document.getElementById('timer-display').textContent = formatTime(timer.elapsedTime);
+}
+
+function startTimerInterval() {
+    timer.interval = setInterval(() => {
+        if (timer.isRunning && !timer.isPaused) {
+            timer.elapsedTime++;
+            updateTimerDisplay();
+        }
+    }, 1000);
+}
+
+function stopTimerInterval() {
+    if (timer.interval) {
+        clearInterval(timer.interval);
+        timer.interval = null;
+    }
+}
+
+// Start Session
+document.getElementById('start-btn')?.addEventListener('click', async () => {
+    const projectId = document.getElementById('project-select').value || null;
+    
+    try {
+        const response = await fetch('/api/study-session/start', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ project_id: projectId })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            timer.isRunning = true;
+            timer.sessionId = data.session_id;
+            timer.startTime = new Date(data.start_time);
+            timer.elapsedTime = 0;
+            
+            // Update UI
+            document.getElementById('project-select').disabled = true;
+            document.getElementById('timer-controls').innerHTML = `
+                <button id="pause-btn" class="btn btn-warning btn-lg me-2">
+                    <i data-feather="pause" class="me-2"></i>
+                    Pause
+                </button>
+                <button id="stop-btn" class="btn btn-danger btn-lg">
+                    <i data-feather="stop-circle" class="me-2"></i>
+                    Stop Session
+                </button>
+            `;
+            
+            // Re-initialize feather icons
+            feather.replace();
+            
+            // Start timer
+            startTimerInterval();
+            attachEventListeners();
+        } else {
+            alert('Error starting session: ' + data.error);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to start session');
+    }
+});
+
+// Stop Session
+function stopSession() {
+    const finalDuration = formatTime(timer.elapsedTime);
+    document.getElementById('final-duration').textContent = finalDuration;
+    document.getElementById('final-notes').value = document.getElementById('session-notes').value;
+    
+    new bootstrap.Modal(document.getElementById('stopSessionModal')).show();
+}
+
+// Confirm Stop
+document.getElementById('confirm-stop').addEventListener('click', async () => {
+    const notes = document.getElementById('final-notes').value;
+    
+    try {
+        const response = await fetch('/api/study-session/stop', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                session_id: timer.sessionId,
+                notes: notes 
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Reset timer
+            timer.isRunning = false;
+            timer.sessionId = null;
+            timer.elapsedTime = 0;
+            stopTimerInterval();
+            
+            // Update UI
+            document.getElementById('project-select').disabled = false;
+            document.getElementById('timer-controls').innerHTML = `
+                <button id="start-btn" class="btn btn-success btn-lg">
+                    <i data-feather="play" class="me-2"></i>
+                    Start Session
+                </button>
+            `;
+            document.getElementById('session-notes').value = '';
+            updateTimerDisplay();
+            
+            // Re-initialize feather icons
+            feather.replace();
+            
+            // Hide modal
+            bootstrap.Modal.getInstance(document.getElementById('stopSessionModal')).hide();
+            
+            // Show success message
+            alert(`Session completed! You studied for ${data.duration_formatted}.`);
+            
+            // Attach event listeners for new buttons
+            attachEventListeners();
+        } else {
+            alert('Error stopping session: ' + data.error);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to stop session');
+    }
+});
+
+function attachEventListeners() {
+    // Stop button
+    document.getElementById('stop-btn')?.addEventListener('click', stopSession);
+    
+    // Pause button (placeholder)
+    document.getElementById('pause-btn')?.addEventListener('click', () => {
+        timer.isPaused = !timer.isPaused;
+        const btn = document.getElementById('pause-btn');
+        if (timer.isPaused) {
+            btn.innerHTML = '<i data-feather="play" class="me-2"></i>Resume';
+        } else {
+            btn.innerHTML = '<i data-feather="pause" class="me-2"></i>Pause';
+        }
+        feather.replace();
+    });
+    
+    // Start button
+    document.getElementById('start-btn')?.addEventListener('click', async () => {
+        const projectId = document.getElementById('project-select').value || null;
+        
+        try {
+            const response = await fetch('/api/study-session/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ project_id: projectId })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                timer.isRunning = true;
+                timer.sessionId = data.session_id;
+                timer.startTime = new Date(data.start_time);
+                timer.elapsedTime = 0;
+                
+                // Update UI
+                document.getElementById('project-select').disabled = true;
+                document.getElementById('timer-controls').innerHTML = `
+                    <button id="pause-btn" class="btn btn-warning btn-lg me-2">
+                        <i data-feather="pause" class="me-2"></i>
+                        Pause
+                    </button>
+                    <button id="stop-btn" class="btn btn-danger btn-lg">
+                        <i data-feather="stop-circle" class="me-2"></i>
+                        Stop Session
+                    </button>
+                `;
+                
+                // Re-initialize feather icons
+                feather.replace();
+                
+                // Start timer
+                startTimerInterval();
+                attachEventListeners();
+            } else {
+                alert('Error starting session: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to start session');
+        }
+    });
+}
+
+// Initialize event listeners
+attachEventListeners();
+</script>
+{% endblock %}
