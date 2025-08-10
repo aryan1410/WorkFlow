@@ -1,17 +1,13 @@
-from flask import render_template, request, redirect, url_for, flash, current_app, session
-from flask_login import current_user, login_required
+from flask import render_template, request, redirect, url_for, flash, session
+from flask_login import current_user, login_user, logout_user, login_required
 from datetime import datetime, timedelta
 from sqlalchemy import func, desc
+
 from app import app, db
 from models import Project, Task, ProjectStatus, TaskStatus, Priority, ProjectNote, StudySession, Course, User
-from replit_auth import require_login, make_replit_blueprint
+from auth import verify_email_required, generate_verification_url, verify_email_token, send_verification_email, validate_password_strength
+from forms import LoginForm, RegisterForm, ForgotPasswordForm, ResetPasswordForm, ChangePasswordForm, ProfileForm
 
-app.register_blueprint(make_replit_blueprint(), url_prefix="/auth")
-
-# Make session permanent
-@app.before_request
-def make_session_permanent():
-    session.permanent = True
 
 @app.route('/')
 def index():
@@ -26,7 +22,7 @@ def index():
     total_projects = len(projects)
     completed_projects = len([p for p in projects if p.status == ProjectStatus.COMPLETED])
     in_progress_projects = len([p for p in projects if p.status == ProjectStatus.IN_PROGRESS])
-    overdue_projects = len([p for p in projects if p.deadline and p.deadline < datetime.now() and p.status != ProjectStatus.COMPLETED])
+    overdue_projects = len([p for p in projects if p.deadline and p.deadline < datetime.utcnow() and p.status != ProjectStatus.COMPLETED])
     
     # Group projects by course
     projects_by_course = {}
@@ -38,17 +34,9 @@ def index():
     
     # Get recent study sessions
     recent_sessions = StudySession.query.filter_by(user_id=current_user.id)\
-        .order_by(desc(StudySession.created_at))\
-        .limit(5).all()
+        .order_by(desc(StudySession.created_at)).limit(5).all()
     
-    # Calculate total study time this week
-    week_ago = datetime.now() - timedelta(days=7)
-    weekly_study_time = db.session.query(func.sum(StudySession.duration_minutes))\
-        .filter(StudySession.user_id == current_user.id)\
-        .filter(StudySession.created_at >= week_ago)\
-        .scalar() or 0
-    
-    return render_template('index.html', 
+    return render_template('index.html',
                          projects=projects,
                          projects_by_course=projects_by_course,
                          total_projects=total_projects,
@@ -56,17 +44,148 @@ def index():
                          in_progress_projects=in_progress_projects,
                          overdue_projects=overdue_projects,
                          recent_sessions=recent_sessions,
-                         weekly_study_time=weekly_study_time,
-                         today=datetime.now())
+                         today=datetime.utcnow())
 
+
+# Authentication Routes
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """User login"""
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data.lower()).first()
+        
+        if user and user.check_password(form.password.data):
+            login_user(user, remember=form.remember_me.data)
+            next_page = request.args.get('next')
+            flash(f'Welcome back, {user.full_name}!', 'success')
+            return redirect(next_page) if next_page else redirect(url_for('index'))
+        else:
+            flash('Invalid email or password.', 'error')
+    
+    return render_template('auth/login.html', form=form)
+
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    """User registration"""
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    
+    form = RegisterForm()
+    if form.validate_on_submit():
+        # Validate password strength
+        is_strong, message = validate_password_strength(form.password.data)
+        if not is_strong:
+            flash(message, 'error')
+            return render_template('auth/register.html', form=form)
+        
+        # Create new user
+        user = User(
+            email=form.email.data.lower(),
+            first_name=form.first_name.data,
+            last_name=form.last_name.data
+        )
+        user.set_password(form.password.data)
+        
+        db.session.add(user)
+        db.session.commit()
+        
+        # Generate and send verification email
+        verification_url = generate_verification_url(user.email)
+        send_verification_email(user.email, verification_url)
+        
+        flash('Registration successful! Please check your email to verify your account.', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('auth/register.html', form=form)
+
+
+@app.route('/logout')
+@login_required
+def logout():
+    """User logout"""
+    logout_user()
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('index'))
+
+
+@app.route('/verify-email/<token>')
+def verify_email(token):
+    """Verify email address"""
+    email = verify_email_token(token)
+    if not email:
+        flash('Invalid or expired verification link.', 'error')
+        return redirect(url_for('login'))
+    
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        flash('User not found.', 'error')
+        return redirect(url_for('login'))
+    
+    if user.is_verified:
+        flash('Email already verified.', 'info')
+        return redirect(url_for('login'))
+    
+    user.is_verified = True
+    user.verification_token = None
+    db.session.commit()
+    
+    flash('Email verified successfully! You can now access all features.', 'success')
+    return redirect(url_for('login'))
+
+
+@app.route('/verification-required')
+@login_required
+def verification_required():
+    """Page shown when email verification is required"""
+    return render_template('auth/verification_required.html')
+
+
+@app.route('/resend-verification')
+@login_required
+def resend_verification():
+    """Resend verification email"""
+    if current_user.is_verified:
+        flash('Your email is already verified.', 'info')
+        return redirect(url_for('index'))
+    
+    verification_url = generate_verification_url(current_user.email)
+    send_verification_email(current_user.email, verification_url)
+    
+    flash('Verification email sent! Please check your email.', 'success')
+    return redirect(url_for('verification_required'))
+
+
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    """Forgot password form"""
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    
+    form = ForgotPasswordForm()
+    if form.validate_on_submit():
+        # For now, just show a message
+        flash('Password reset functionality will be available soon. Please contact support.', 'info')
+        return redirect(url_for('login'))
+    
+    return render_template('auth/forgot_password.html', form=form)
+
+
+# Project Management Routes
 @app.route('/project/new', methods=['GET', 'POST'])
-@require_login
+@login_required
+@verify_email_required
 def new_project():
     """Create a new project"""
     if request.method == 'POST':
         title = request.form.get('title', '').strip()
         description = request.form.get('description', '').strip()
         course = request.form.get('course', '').strip()
+        status = request.form.get('status', ProjectStatus.NOT_STARTED.value)
         deadline_str = request.form.get('deadline', '').strip()
         
         # Validation
@@ -93,6 +212,7 @@ def new_project():
             title=title,
             description=description,
             course=course,
+            status=ProjectStatus(status),
             deadline=deadline,
             user_id=current_user.id
         )
@@ -106,8 +226,10 @@ def new_project():
                          title='New Project',
                          project=None)
 
+
 @app.route('/project/<int:project_id>')
-@require_login
+@login_required
+@verify_email_required
 def project_detail(project_id):
     """View project details with tasks"""
     project = Project.query.filter_by(id=project_id, user_id=current_user.id).first()
@@ -130,10 +252,13 @@ def project_detail(project_id):
                          total_tasks=total_tasks,
                          completed_tasks=completed_tasks,
                          progress_percentage=progress_percentage,
-                         today=datetime.now())
+                         today=datetime.utcnow())
 
+
+# Continue with other project routes...
 @app.route('/project/<int:project_id>/edit', methods=['GET', 'POST'])
-@require_login
+@login_required
+@verify_email_required
 def edit_project(project_id):
     """Edit an existing project"""
     project = Project.query.filter_by(id=project_id, user_id=current_user.id).first()
@@ -173,7 +298,7 @@ def edit_project(project_id):
         project.course = course
         project.status = ProjectStatus(status)
         project.deadline = deadline
-        project.updated_at = datetime.now()
+        project.updated_at = datetime.utcnow()
         
         db.session.commit()
         flash(f'Project "{title}" updated successfully!', 'success')
@@ -183,8 +308,10 @@ def edit_project(project_id):
                          title='Edit Project',
                          project=project)
 
+
 @app.route('/project/<int:project_id>/delete', methods=['POST'])
-@require_login
+@login_required
+@verify_email_required
 def delete_project(project_id):
     """Delete a project and all its tasks"""
     project = Project.query.filter_by(id=project_id, user_id=current_user.id).first()
@@ -200,8 +327,11 @@ def delete_project(project_id):
     flash(f'Project "{project_title}" deleted successfully!', 'success')
     return redirect(url_for('index'))
 
+
+# Task Management Routes
 @app.route('/project/<int:project_id>/task/new', methods=['POST'])
-@require_login
+@login_required
+@verify_email_required
 def new_task(project_id):
     """Create a new task for a project"""
     project = Project.query.filter_by(id=project_id, user_id=current_user.id).first()
@@ -240,8 +370,10 @@ def new_task(project_id):
     flash(f'Task "{title}" created successfully!', 'success')
     return redirect(url_for('project_detail', project_id=project_id))
 
+
 @app.route('/task/<int:task_id>/update_status', methods=['POST'])
-@require_login
+@login_required
+@verify_email_required
 def update_task_status(task_id):
     """Update task status"""
     task = Task.query.join(Project).filter(
@@ -256,7 +388,7 @@ def update_task_status(task_id):
     new_status = request.form.get('status')
     if new_status in [s.value for s in TaskStatus]:
         task.status = TaskStatus(new_status)
-        task.updated_at = datetime.now()
+        task.updated_at = datetime.utcnow()
         db.session.commit()
         flash('Task status updated successfully!', 'success')
     else:
@@ -264,8 +396,10 @@ def update_task_status(task_id):
     
     return redirect(url_for('project_detail', project_id=task.project_id))
 
+
 @app.route('/task/<int:task_id>/delete', methods=['POST'])
-@require_login
+@login_required
+@verify_email_required
 def delete_task(task_id):
     """Delete a task"""
     task = Task.query.join(Project).filter(
@@ -284,9 +418,11 @@ def delete_task(task_id):
     flash('Task deleted successfully!', 'success')
     return redirect(url_for('project_detail', project_id=project_id))
 
+
 # Study Session Routes
 @app.route('/project/<int:project_id>/study', methods=['POST'])
-@require_login
+@login_required
+@verify_email_required
 def log_study_session(project_id):
     """Log a study session for a project"""
     project = Project.query.filter_by(id=project_id, user_id=current_user.id).first()
@@ -301,24 +437,26 @@ def log_study_session(project_id):
         flash('Please enter a valid study duration.', 'error')
         return redirect(url_for('project_detail', project_id=project_id))
     
-    session = StudySession(
+    study_session = StudySession(
         project_id=project_id,
         user_id=current_user.id,
         duration_minutes=duration,
         description=description
     )
     
-    db.session.add(session)
+    db.session.add(study_session)
     db.session.commit()
     flash(f'Study session logged: {duration} minutes', 'success')
     return redirect(url_for('project_detail', project_id=project_id))
 
+
 @app.route('/study-analytics')
-@require_login
+@login_required
+@verify_email_required
 def study_analytics():
     """View study analytics dashboard"""
     # Get study sessions for the last 30 days
-    thirty_days_ago = datetime.now() - timedelta(days=30)
+    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
     sessions = StudySession.query.filter(
         StudySession.user_id == current_user.id,
         StudySession.created_at >= thirty_days_ago
@@ -342,9 +480,11 @@ def study_analytics():
                          total_sessions=total_sessions,
                          project_time=project_time)
 
+
 # Project Notes Routes
 @app.route('/project/<int:project_id>/note/new', methods=['POST'])
-@require_login
+@login_required
+@verify_email_required
 def add_project_note(project_id):
     """Add a note to a project"""
     project = Project.query.filter_by(id=project_id, user_id=current_user.id).first()
@@ -367,8 +507,10 @@ def add_project_note(project_id):
     flash('Note added successfully!', 'success')
     return redirect(url_for('project_detail', project_id=project_id))
 
+
 @app.route('/note/<int:note_id>/delete', methods=['POST'])
-@require_login
+@login_required
+@verify_email_required
 def delete_project_note(note_id):
     """Delete a project note"""
     note = ProjectNote.query.join(Project).filter(
@@ -387,16 +529,20 @@ def delete_project_note(note_id):
     flash('Note deleted successfully!', 'success')
     return redirect(url_for('project_detail', project_id=project_id))
 
+
 # Course Management Routes
 @app.route('/courses')
-@require_login
+@login_required
+@verify_email_required
 def manage_courses():
     """Manage user courses"""
     courses = Course.query.filter_by(user_id=current_user.id).order_by(Course.year.desc(), Course.semester).all()
     return render_template('courses.html', courses=courses)
 
+
 @app.route('/course/new', methods=['POST'])
-@require_login
+@login_required
+@verify_email_required
 def add_course():
     """Add a new course"""
     name = request.form.get('name', '').strip()
@@ -425,9 +571,10 @@ def add_course():
     flash('Course added successfully!', 'success')
     return redirect(url_for('manage_courses'))
 
+
 # Profile and Settings
 @app.route('/profile')
-@require_login
+@login_required
 def profile():
     """View user profile and statistics"""
     # Get user statistics
@@ -457,10 +604,12 @@ def profile():
                          completed_tasks=completed_tasks,
                          total_study_time=total_study_time)
 
+
 # Error handlers
 @app.errorhandler(404)
 def not_found_error(error):
     return render_template('base.html', error_message="Page not found"), 404
+
 
 @app.errorhandler(500)
 def internal_error(error):

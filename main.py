@@ -1,4 +1,5 @@
 from app import app
+import auth  # Import auth to initialize Flask-Login
 import routes  # Import routes to register them
 
 if __name__ == '__main__':
