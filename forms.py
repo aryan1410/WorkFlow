@@ -1,6 +1,7 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, BooleanField, TextAreaField
-from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError
+from flask_wtf.file import FileField, FileAllowed, FileRequired
+from wtforms import StringField, PasswordField, SubmitField, BooleanField, TextAreaField, SelectField, HiddenField
+from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError, Optional
 from models import User
 
 
@@ -70,3 +71,41 @@ class ProfileForm(FlaskForm):
     first_name = StringField('First Name', validators=[DataRequired(), Length(min=2, max=50)])
     last_name = StringField('Last Name', validators=[DataRequired(), Length(min=2, max=50)])
     submit = SubmitField('Update Profile')
+
+
+class FileUploadForm(FlaskForm):
+    file = FileField('Choose File', validators=[
+        FileRequired(),
+        FileAllowed(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 
+                    'ppt', 'pptx', 'xls', 'xlsx', 'zip', 'rar', 'py', 'js', 'html', 'css'],
+                   'Invalid file type!')
+    ])
+    description = TextAreaField('Description (optional)', validators=[Optional(), Length(max=500)])
+    submit = SubmitField('Upload File')
+
+
+class CollaboratorInviteForm(FlaskForm):
+    email = StringField('Email Address', validators=[DataRequired(), Email()])
+    role = SelectField('Role', choices=[
+        ('collaborator', 'Collaborator - Can edit and manage tasks'),
+        ('viewer', 'Viewer - Can only view project details')
+    ], default='collaborator')
+    message = TextAreaField('Invitation Message (optional)', validators=[Optional(), Length(max=500)])
+    submit = SubmitField('Send Invitation')
+
+
+class CommentForm(FlaskForm):
+    content = TextAreaField('Add a comment', validators=[DataRequired(), Length(min=1, max=1000)])
+    submit = SubmitField('Post Comment')
+
+
+class SearchForm(FlaskForm):
+    query = StringField('Search projects, tasks, or collaborators...', validators=[DataRequired()])
+    filter_type = SelectField('Filter', choices=[
+        ('all', 'All'),
+        ('projects', 'Projects'),
+        ('tasks', 'Tasks'),
+        ('collaborators', 'Collaborators'),
+        ('files', 'Files')
+    ], default='all')
+    submit = SubmitField('Search')

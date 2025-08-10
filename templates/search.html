@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}Search - Academic Project Tracker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i data-feather="search" class="me-2"></i>
+                    Search Projects & Tasks
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="GET" action="{{ url_for('search') }}">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <input type="text" class="form-control" name="query" value="{{ query }}" 
+                                   placeholder="Search projects, tasks, files, or collaborators..." required>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" name="filter_type">
+                                <option value="all" {{ 'selected' if request.args.get('filter_type') == 'all' else '' }}>All</option>
+                                <option value="projects" {{ 'selected' if request.args.get('filter_type') == 'projects' else '' }}>Projects</option>
+                                <option value="tasks" {{ 'selected' if request.args.get('filter_type') == 'tasks' else '' }}>Tasks</option>
+                                <option value="files" {{ 'selected' if request.args.get('filter_type') == 'files' else '' }}>Files</option>
+                            </select>
+                        </div>
+                        <div class="col-md-1">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i data-feather="search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {% if query %}
+            <!-- Search Results -->
+            <div class="row">
+                <!-- Projects Results -->
+                {% if results.projects %}
+                    <div class="col-12 mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i data-feather="folder" class="me-2"></i>
+                                    Projects ({{ results.projects|length }})
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                {% for project in results.projects %}
+                                    <div class="border-bottom pb-3 mb-3">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <h6>
+                                                    <a href="{{ url_for('project_detail', project_id=project.id) }}" class="text-decoration-none">
+                                                        {{ project.title }}
+                                                    </a>
+                                                </h6>
+                                                <p class="text-muted mb-1">{{ project.description[:100] }}{% if project.description|length > 100 %}...{% endif %}</p>
+                                                <small class="text-muted">
+                                                    {{ project.course }} • 
+                                                    <span class="badge bg-{{ 'success' if project.status.value == 'COMPLETED' else 'primary' if project.status.value == 'IN_PROGRESS' else 'secondary' }}">
+                                                        {{ project.status.value.replace('_', ' ').title() }}
+                                                    </span>
+                                                </small>
+                                            </div>
+                                            {% if project.deadline %}
+                                                <small class="text-muted">
+                                                    <i data-feather="calendar" style="width: 14px; height: 14px;" class="me-1"></i>
+                                                    {{ project.deadline.strftime('%m/%d/%Y') }}
+                                                </small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- Tasks Results -->
+                {% if results.tasks %}
+                    <div class="col-12 mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i data-feather="check-square" class="me-2"></i>
+                                    Tasks ({{ results.tasks|length }})
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                {% for task in results.tasks %}
+                                    <div class="border-bottom pb-3 mb-3">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <h6>
+                                                    <a href="{{ url_for('project_detail', project_id=task.project_id) }}" class="text-decoration-none">
+                                                        {{ task.title }}
+                                                    </a>
+                                                </h6>
+                                                <p class="text-muted mb-1">{{ task.description[:100] }}{% if task.description|length > 100 %}...{% endif %}</p>
+                                                <small class="text-muted">
+                                                    Project: {{ task.project.title }} • 
+                                                    <span class="badge bg-{{ 'success' if task.priority.value == 'LOW' else 'warning' if task.priority.value == 'MEDIUM' else 'danger' }}">
+                                                        {{ task.priority.value.title() }} Priority
+                                                    </span>
+                                                </small>
+                                            </div>
+                                            {% if task.due_date %}
+                                                <small class="text-muted">
+                                                    <i data-feather="calendar" style="width: 14px; height: 14px;" class="me-1"></i>
+                                                    {{ task.due_date.strftime('%m/%d/%Y') }}
+                                                </small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- Files Results -->
+                {% if results.files %}
+                    <div class="col-12 mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i data-feather="paperclip" class="me-2"></i>
+                                    Files ({{ results.files|length }})
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                {% for file in results.files %}
+                                    <div class="border-bottom pb-3 mb-3">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div class="d-flex align-items-center">
+                                                <i data-feather="file" class="me-2 text-muted"></i>
+                                                <div>
+                                                    <h6 class="mb-0">{{ file.original_filename }}</h6>
+                                                    <small class="text-muted">
+                                                        Project: {{ file.project.title }} • 
+                                                        {{ file.file_size // 1024 }} KB • 
+                                                        {{ file.uploaded_at.strftime('%m/%d/%Y') }}
+                                                    </small>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex gap-2">
+                                                <a href="{{ url_for('download_file', project_id=file.project_id, file_id=file.id) }}" class="btn btn-outline-primary btn-sm">
+                                                    <i data-feather="download" style="width: 14px; height: 14px;"></i>
+                                                </a>
+                                                <a href="{{ url_for('project_detail', project_id=file.project_id) }}" class="btn btn-outline-secondary btn-sm">
+                                                    View Project
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- No Results -->
+                {% if not results.projects and not results.tasks and not results.files %}
+                    <div class="col-12">
+                        <div class="text-center py-5">
+                            <i data-feather="search" style="width: 48px; height: 48px;" class="text-muted mb-3"></i>
+                            <h5>No results found</h5>
+                            <p class="text-muted">Try searching with different keywords or check your filters.</p>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        {% else %}
+            <!-- Search Instructions -->
+            <div class="text-center py-5">
+                <i data-feather="search" style="width: 64px; height: 64px;" class="text-muted mb-3"></i>
+                <h4>Search Your Academic Projects</h4>
+                <p class="text-muted">Find projects, tasks, files, and collaborators quickly and easily.</p>
+                <div class="row mt-4">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <i data-feather="folder" class="text-primary mb-2"></i>
+                                <h6>Projects</h6>
+                                <small class="text-muted">Search by title, description, or course</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <i data-feather="check-square" class="text-primary mb-2"></i>
+                                <h6>Tasks</h6>
+                                <small class="text-muted">Find tasks by title or description</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <i data-feather="paperclip" class="text-primary mb-2"></i>
+                                <h6>Files</h6>
+                                <small class="text-muted">Locate files by filename</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Academic Project Tracker is a Flask-based web application designed to help students manage their academic projects and tasks. The application provides a dashboard for tracking project progress, deadlines, and task completion across different courses. It features an intuitive interface for creating, editing, and organizing projects with associated tasks, status tracking, and deadline management.
+Academic Project Tracker is a comprehensive Flask-based web application designed to help students manage their academic projects and tasks with advanced collaborative features. The application provides a dashboard for tracking project progress, deadlines, and task completion across different courses. It features an intuitive interface for creating, editing, and organizing projects with associated tasks, status tracking, deadline management, file uploads, team collaboration, email verification, and progress analytics.
 
 ## User Preferences
 
@@ -30,6 +30,9 @@ Preferred communication style: Simple, everyday language.
 - **User Data Isolation**: All user data (projects, tasks, courses, study sessions) linked to authenticated users
 - **Model Architecture**: SQLAlchemy models with proper foreign key relationships and cascading deletes
 - **Database Features**: Indexes on email fields, enum constraints for status fields, timestamp tracking
+- **File Storage**: Local file system storage with organized project-based directory structure
+- **Collaborative Data**: ProjectCollaborator, ProjectComment, ProjectFile, and ActivityLog models for team features
+- **Permission Controls**: Database-level access control with user role validation
 
 ### Authentication and Authorization
 - **Authentication System**: Custom user authentication with Flask-Login
@@ -47,6 +50,13 @@ Preferred communication style: Simple, everyday language.
 - **Dashboard Analytics**: Project statistics and progress visualization
 - **Deadline Management**: Date-based deadline tracking with overdue detection
 - **Course Organization**: Projects grouped by academic course or category
+- **File Upload System**: Secure file upload with size limits, type validation, and thumbnail generation for images
+- **Collaborative Features**: Multi-user project collaboration with role-based permissions (owner, collaborator, viewer)
+- **Email Verification**: SendGrid-powered email verification system for user registration
+- **Comment System**: Project-based discussion threads for team communication
+- **Activity Logging**: Comprehensive audit trail of all project activities and changes
+- **Advanced Search**: Full-text search across projects, tasks, files, and collaborators
+- **Permission Management**: Granular access control for project viewing and editing
 
 ## External Dependencies
 
@@ -58,12 +68,14 @@ Preferred communication style: Simple, everyday language.
 ### Backend Dependencies
 - **Flask**: Core web framework for Python
 - **Flask-Login**: User session management and authentication
-- **Flask-WTF**: Form handling and CSRF protection
+- **Flask-WTF**: Form handling and CSRF protection with file upload support
 - **Flask-SQLAlchemy**: Database ORM for PostgreSQL
 - **Werkzeug**: Password hashing and security utilities
 - **email-validator**: Email address validation
 - **itsdangerous**: Secure token generation for email verification
-- **Python Standard Library**: datetime, enum, os, logging modules for core functionality
+- **SendGrid**: Email delivery service for verification and notifications
+- **Pillow**: Image processing for thumbnail generation and file handling
+- **Python Standard Library**: datetime, enum, os, logging, secrets modules for core functionality
 
 ### Development Dependencies
 - **Flask Debug Mode**: Enabled for development with automatic reloading

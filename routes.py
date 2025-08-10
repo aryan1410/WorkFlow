@@ -1,12 +1,16 @@
-from flask import render_template, request, redirect, url_for, flash, session
+from flask import render_template, request, redirect, url_for, flash, session, send_file, jsonify
 from flask_login import current_user, login_user, logout_user, login_required
 from datetime import datetime, timedelta
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, or_, and_
+import os
 
 from app import app, db
-from models import Project, Task, ProjectStatus, TaskStatus, Priority, ProjectNote, StudySession, Course, User
+from models import (Project, Task, ProjectStatus, TaskStatus, Priority, ProjectNote, StudySession, Course, User,
+                   ProjectFile, ProjectCollaborator, ProjectComment, ActivityLog)
 from auth import verify_email_required, generate_verification_url, verify_email_token, send_verification_email, validate_password_strength
-from forms import LoginForm, RegisterForm, ForgotPasswordForm, ResetPasswordForm, ChangePasswordForm, ProfileForm
+from forms import (LoginForm, RegisterForm, ForgotPasswordForm, ResetPasswordForm, ChangePasswordForm, ProfileForm,
+                  FileUploadForm, CollaboratorInviteForm, CommentForm, SearchForm)
+from utils import save_uploaded_file, format_file_size, get_file_icon, log_activity
 
 
 @app.route('/')
@@ -219,6 +223,11 @@ def new_project():
         
         db.session.add(project)
         db.session.commit()
+        
+        # Log activity
+        log_activity(current_user.id, 'created', 'project', project.id, 
+                    f'Created project "{title}"', project.id)
+        
         flash(f'Project "{title}" created successfully!', 'success')
         return redirect(url_for('project_detail', project_id=project.id))
     
@@ -231,27 +240,53 @@ def new_project():
 @login_required
 @verify_email_required
 def project_detail(project_id):
-    """View project details with tasks"""
-    project = Project.query.filter_by(id=project_id, user_id=current_user.id).first()
-    if not project:
-        flash('Project not found.', 'error')
+    """View project details with tasks, files, collaborators, and comments"""
+    project = Project.query.get_or_404(project_id)
+    
+    # Check if user can access this project
+    if not project.can_user_access(current_user):
+        flash('You do not have permission to view this project.', 'error')
         return redirect(url_for('index'))
     
     tasks = Task.query.filter_by(project_id=project_id).all()
     notes = ProjectNote.query.filter_by(project_id=project_id).order_by(desc(ProjectNote.created_at)).all()
+    files = ProjectFile.query.filter_by(project_id=project_id).order_by(desc(ProjectFile.uploaded_at)).all()
+    comments = ProjectComment.query.filter_by(project_id=project_id).order_by(ProjectComment.created_at).all()
+    collaborators = project.get_collaborators()
     
     # Calculate task statistics
     total_tasks = len(tasks)
     completed_tasks = len([t for t in tasks if t.status == TaskStatus.DONE])
     progress_percentage = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
     
+    # Get recent activity
+    recent_activity = ActivityLog.query.filter_by(project_id=project_id)\
+        .order_by(desc(ActivityLog.created_at)).limit(10).all()
+    
+    # Forms
+    file_form = FileUploadForm()
+    comment_form = CommentForm()
+    invite_form = CollaboratorInviteForm()
+    
+    # Format file sizes
+    for file in files:
+        file.formatted_size = format_file_size(file.file_size)
+        file.icon = get_file_icon(file.file_type)
+    
     return render_template('project_detail.html', 
                          project=project,
                          tasks=tasks,
                          notes=notes,
+                         files=files,
+                         comments=comments,
+                         collaborators=collaborators,
+                         recent_activity=recent_activity,
                          total_tasks=total_tasks,
                          completed_tasks=completed_tasks,
                          progress_percentage=progress_percentage,
+                         file_form=file_form,
+                         comment_form=comment_form,
+                         invite_form=invite_form,
                          today=datetime.utcnow())
 
 
@@ -301,6 +336,11 @@ def edit_project(project_id):
         project.updated_at = datetime.utcnow()
         
         db.session.commit()
+        
+        # Log activity
+        log_activity(current_user.id, 'updated', 'project', project_id, 
+                    f'Updated project "{title}"', project_id)
+        
         flash(f'Project "{title}" updated successfully!', 'success')
         return redirect(url_for('project_detail', project_id=project_id))
     
@@ -603,6 +643,295 @@ def profile():
                          total_tasks=total_tasks,
                          completed_tasks=completed_tasks,
                          total_study_time=total_study_time)
+
+
+# File management routes
+@app.route('/project/<int:project_id>/upload', methods=['POST'])
+@login_required
+@verify_email_required
+def upload_file(project_id):
+    """Upload file to project"""
+    project = Project.query.get_or_404(project_id)
+    
+    if not project.can_user_edit(current_user):
+        flash('You do not have permission to upload files to this project.', 'error')
+        return redirect(url_for('project_detail', project_id=project_id))
+    
+    form = FileUploadForm()
+    if form.validate_on_submit():
+        try:
+            file_info = save_uploaded_file(form.file.data, project_id, current_user.id)
+            if file_info:
+                # Save file record to database
+                project_file = ProjectFile(
+                    filename=file_info['filename'],
+                    original_filename=file_info['original_filename'],
+                    file_size=file_info['file_size'],
+                    file_type=file_info['file_type'],
+                    file_path=file_info['file_path'],
+                    project_id=project_id,
+                    uploaded_by=current_user.id
+                )
+                
+                db.session.add(project_file)
+                db.session.commit()
+                
+                # Log activity
+                log_activity(current_user.id, 'uploaded', 'file', project_file.id,
+                           f'Uploaded file "{file_info["original_filename"]}"', project_id)
+                
+                flash(f'File "{file_info["original_filename"]}" uploaded successfully!', 'success')
+            else:
+                flash('File upload failed.', 'error')
+                
+        except ValueError as e:
+            flash(str(e), 'error')
+        except Exception as e:
+            flash('An error occurred while uploading the file.', 'error')
+            print(f"Upload error: {e}")
+    
+    return redirect(url_for('project_detail', project_id=project_id))
+
+
+@app.route('/project/<int:project_id>/file/<int:file_id>/download')
+@login_required
+@verify_email_required
+def download_file(project_id, file_id):
+    """Download project file"""
+    project = Project.query.get_or_404(project_id)
+    if not project.can_user_access(current_user):
+        flash('You do not have permission to access this project.', 'error')
+        return redirect(url_for('index'))
+    
+    file = ProjectFile.query.filter_by(id=file_id, project_id=project_id).first_or_404()
+    
+    try:
+        return send_file(file.file_path, 
+                        download_name=file.original_filename,
+                        as_attachment=True)
+    except FileNotFoundError:
+        flash('File not found.', 'error')
+        return redirect(url_for('project_detail', project_id=project_id))
+
+
+@app.route('/project/<int:project_id>/file/<int:file_id>/delete', methods=['POST'])
+@login_required
+@verify_email_required
+def delete_file(project_id, file_id):
+    """Delete project file"""
+    project = Project.query.get_or_404(project_id)
+    if not project.can_user_edit(current_user):
+        flash('You do not have permission to delete files from this project.', 'error')
+        return redirect(url_for('project_detail', project_id=project_id))
+    
+    file = ProjectFile.query.filter_by(id=file_id, project_id=project_id).first_or_404()
+    
+    try:
+        # Delete physical file
+        if os.path.exists(file.file_path):
+            os.remove(file.file_path)
+        
+        # Delete database record
+        db.session.delete(file)
+        db.session.commit()
+        
+        # Log activity
+        log_activity(current_user.id, 'deleted', 'file', file_id,
+                   f'Deleted file "{file.original_filename}"', project_id)
+        
+        flash('File deleted successfully!', 'success')
+    except Exception as e:
+        flash('An error occurred while deleting the file.', 'error')
+        print(f"Delete error: {e}")
+    
+    return redirect(url_for('project_detail', project_id=project_id))
+
+
+# Collaboration routes
+@app.route('/project/<int:project_id>/invite', methods=['POST'])
+@login_required
+@verify_email_required
+def invite_collaborator(project_id):
+    """Invite collaborator to project"""
+    project = Project.query.get_or_404(project_id)
+    
+    # Only owner can invite collaborators
+    if project.user_id != current_user.id:
+        flash('Only the project owner can invite collaborators.', 'error')
+        return redirect(url_for('project_detail', project_id=project_id))
+    
+    form = CollaboratorInviteForm()
+    if form.validate_on_submit():
+        # Find user by email
+        invited_user = User.query.filter_by(email=form.email.data).first()
+        if not invited_user:
+            flash('User with this email address not found.', 'error')
+            return redirect(url_for('project_detail', project_id=project_id))
+        
+        # Check if already a collaborator
+        existing = ProjectCollaborator.query.filter_by(
+            project_id=project_id, user_id=invited_user.id).first()
+        if existing:
+            flash('This user is already a collaborator on this project.', 'error')
+            return redirect(url_for('project_detail', project_id=project_id))
+        
+        # Create collaboration invitation
+        collaboration = ProjectCollaborator(
+            project_id=project_id,
+            user_id=invited_user.id,
+            role=form.role.data,
+            status='pending'
+        )
+        
+        db.session.add(collaboration)
+        db.session.commit()
+        
+        # Log activity
+        log_activity(current_user.id, 'invited', 'collaborator', invited_user.id,
+                   f'Invited {invited_user.email} as {form.role.data}', project_id)
+        
+        flash(f'Invitation sent to {form.email.data}!', 'success')
+    
+    return redirect(url_for('project_detail', project_id=project_id))
+
+
+@app.route('/collaboration/<int:collab_id>/accept')
+@login_required
+@verify_email_required
+def accept_collaboration(collab_id):
+    """Accept collaboration invitation"""
+    collaboration = ProjectCollaborator.query.get_or_404(collab_id)
+    
+    if collaboration.user_id != current_user.id:
+        flash('You can only accept your own invitations.', 'error')
+        return redirect(url_for('index'))
+    
+    collaboration.status = 'accepted'
+    collaboration.accepted_at = datetime.utcnow()
+    db.session.commit()
+    
+    # Log activity
+    log_activity(current_user.id, 'accepted', 'collaboration', collab_id,
+               f'Accepted collaboration invitation', collaboration.project_id)
+    
+    flash('Collaboration invitation accepted!', 'success')
+    return redirect(url_for('project_detail', project_id=collaboration.project_id))
+
+
+@app.route('/collaboration/<int:collab_id>/decline')
+@login_required
+@verify_email_required
+def decline_collaboration(collab_id):
+    """Decline collaboration invitation"""
+    collaboration = ProjectCollaborator.query.get_or_404(collab_id)
+    
+    if collaboration.user_id != current_user.id:
+        flash('You can only decline your own invitations.', 'error')
+        return redirect(url_for('index'))
+    
+    collaboration.status = 'declined'
+    db.session.commit()
+    
+    flash('Collaboration invitation declined.', 'info')
+    return redirect(url_for('index'))
+
+
+# Comment routes
+@app.route('/project/<int:project_id>/comment', methods=['POST'])
+@login_required
+@verify_email_required
+def add_comment(project_id):
+    """Add comment to project"""
+    project = Project.query.get_or_404(project_id)
+    
+    if not project.can_user_access(current_user):
+        flash('You do not have permission to comment on this project.', 'error')
+        return redirect(url_for('project_detail', project_id=project_id))
+    
+    form = CommentForm()
+    if form.validate_on_submit():
+        comment = ProjectComment(
+            content=form.content.data,
+            project_id=project_id,
+            user_id=current_user.id
+        )
+        
+        db.session.add(comment)
+        db.session.commit()
+        
+        # Log activity
+        log_activity(current_user.id, 'commented', 'project', project_id,
+                   'Added a comment', project_id)
+        
+        flash('Comment added successfully!', 'success')
+    
+    return redirect(url_for('project_detail', project_id=project_id))
+
+
+# Search routes
+@app.route('/search')
+@login_required
+@verify_email_required
+def search():
+    """Search projects, tasks, and collaborators"""
+    form = SearchForm()
+    results = {
+        'projects': [],
+        'tasks': [],
+        'collaborators': [],
+        'files': []
+    }
+    
+    if request.args.get('query'):
+        query = request.args.get('query')
+        filter_type = request.args.get('filter_type', 'all')
+        
+        # Search projects user owns or collaborates on
+        accessible_projects = db.session.query(Project.id).filter(
+            or_(
+                Project.user_id == current_user.id,
+                Project.id.in_(
+                    db.session.query(ProjectCollaborator.project_id)
+                    .filter(and_(
+                        ProjectCollaborator.user_id == current_user.id,
+                        ProjectCollaborator.status == 'accepted'
+                    ))
+                )
+            )
+        ).subquery()
+        
+        if filter_type in ['all', 'projects']:
+            results['projects'] = Project.query.filter(
+                and_(
+                    Project.id.in_(accessible_projects),
+                    or_(
+                        Project.title.ilike(f'%{query}%'),
+                        Project.description.ilike(f'%{query}%'),
+                        Project.course.ilike(f'%{query}%')
+                    )
+                )
+            ).all()
+        
+        if filter_type in ['all', 'tasks']:
+            results['tasks'] = Task.query.filter(
+                and_(
+                    Task.project_id.in_(accessible_projects),
+                    or_(
+                        Task.title.ilike(f'%{query}%'),
+                        Task.description.ilike(f'%{query}%')
+                    )
+                )
+            ).all()
+        
+        if filter_type in ['all', 'files']:
+            results['files'] = ProjectFile.query.filter(
+                and_(
+                    ProjectFile.project_id.in_(accessible_projects),
+                    ProjectFile.original_filename.ilike(f'%{query}%')
+                )
+            ).all()
+    
+    return render_template('search.html', form=form, results=results, query=query if 'query' in locals() else '')
 
 
 # Error handlers

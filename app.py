@@ -32,6 +32,18 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 app.config['WTF_CSRF_ENABLED'] = True
 app.config['WTF_CSRF_TIME_LIMIT'] = None
 
+# File upload configuration
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['ALLOWED_EXTENSIONS'] = {
+    'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 
+    'ppt', 'pptx', 'xls', 'xlsx', 'zip', 'rar', 'py', 'js', 'html', 'css'
+}
+
+# Create upload directory
+import os
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
 # No need to call db.init_app(app) here, it's already done in the constructor.
 db = SQLAlchemy(app, model_class=Base)
 

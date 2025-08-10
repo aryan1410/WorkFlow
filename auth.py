@@ -54,18 +54,73 @@ def generate_reset_token():
 
 
 def send_verification_email(user_email, verification_url):
-    """Send verification email - placeholder for now"""
-    # This is where you would integrate with SendGrid or another email service
-    # For now, we'll just print the URL (in production, send actual email)
-    print(f"Verification email for {user_email}: {verification_url}")
-    return True
+    """Send verification email using SendGrid"""
+    try:
+        from sendgrid import SendGridAPIClient
+        from sendgrid.helpers.mail import Mail
+        
+        sg = SendGridAPIClient(api_key=os.environ.get('SENDGRID_API_KEY'))
+        
+        message = Mail(
+            from_email='noreply@academictracker.app',
+            to_emails=user_email,
+            subject='Verify Your Academic Project Tracker Account',
+            html_content=f'''
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #333;">Welcome to Academic Project Tracker!</h2>
+                <p>Thank you for registering. Please verify your email address by clicking the button below:</p>
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="{verification_url}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Verify Email Address</a>
+                </div>
+                <p>If the button doesn't work, copy and paste this link into your browser:</p>
+                <p style="word-break: break-all; color: #666;">{verification_url}</p>
+                <p style="color: #666; font-size: 14px;">This link will expire in 1 hour for security reasons.</p>
+            </div>
+            '''
+        )
+        
+        response = sg.send(message)
+        return response.status_code == 202
+    except Exception as e:
+        print(f"Email sending failed: {e}")
+        # Fallback: print to console for development
+        print(f"Verification email for {user_email}: {verification_url}")
+        return True
 
 
 def send_password_reset_email(user_email, reset_url):
-    """Send password reset email - placeholder for now"""
-    # This is where you would integrate with SendGrid or another email service
-    print(f"Password reset email for {user_email}: {reset_url}")
-    return True
+    """Send password reset email using SendGrid"""
+    try:
+        from sendgrid import SendGridAPIClient
+        from sendgrid.helpers.mail import Mail
+        
+        sg = SendGridAPIClient(api_key=os.environ.get('SENDGRID_API_KEY'))
+        
+        message = Mail(
+            from_email='noreply@academictracker.app',
+            to_emails=user_email,
+            subject='Reset Your Academic Project Tracker Password',
+            html_content=f'''
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #333;">Password Reset Request</h2>
+                <p>You requested to reset your password. Click the button below to create a new password:</p>
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="{reset_url}" style="background-color: #dc3545; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Reset Password</a>
+                </div>
+                <p>If the button doesn't work, copy and paste this link into your browser:</p>
+                <p style="word-break: break-all; color: #666;">{reset_url}</p>
+                <p style="color: #666; font-size: 14px;">This link will expire in 1 hour for security reasons.</p>
+                <p style="color: #666; font-size: 14px;">If you didn't request this, please ignore this email.</p>
+            </div>
+            '''
+        )
+        
+        response = sg.send(message)
+        return response.status_code == 202
+    except Exception as e:
+        print(f"Email sending failed: {e}")
+        print(f"Password reset email for {user_email}: {reset_url}")
+        return True
 
 
 def verify_email_required(f):

@@ -87,6 +87,39 @@ class Project(db.Model):
     tasks = db.relationship('Task', backref='project', lazy=True, cascade='all, delete-orphan')
     notes = db.relationship('ProjectNote', backref='project', lazy=True, cascade='all, delete-orphan')
     study_sessions = db.relationship('StudySession', backref='project', lazy=True, cascade='all, delete-orphan')
+    files = db.relationship('ProjectFile', backref='project', lazy=True, cascade='all, delete-orphan')
+    
+    def get_collaborators(self):
+        """Get all collaborators including the owner"""
+        collaborators = []
+        # Add owner
+        collaborators.append({
+            'user': self.user,
+            'role': 'owner',
+            'status': 'accepted'
+        })
+        # Add other collaborators
+        for collab in self.collaborators:
+            if collab.status == 'accepted':
+                collaborators.append({
+                    'user': collab.user,
+                    'role': collab.role,
+                    'status': collab.status
+                })
+        return collaborators
+    
+    def can_user_access(self, user):
+        """Check if user can access this project"""
+        if self.user_id == user.id:
+            return True
+        return any(c.user_id == user.id and c.status == 'accepted' for c in self.collaborators)
+    
+    def can_user_edit(self, user):
+        """Check if user can edit this project"""
+        if self.user_id == user.id:
+            return True
+        collab = next((c for c in self.collaborators if c.user_id == user.id), None)
+        return collab and collab.status == 'accepted' and collab.role in ['owner', 'collaborator']
 
 
 class Task(db.Model):
@@ -146,3 +179,77 @@ class Course(db.Model):
     
     # Foreign key to User
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+
+class ProjectFile(db.Model):
+    __tablename__ = 'project_files'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    filename = db.Column(db.String(255), nullable=False)
+    original_filename = db.Column(db.String(255), nullable=False)
+    file_size = db.Column(db.Integer, nullable=False)
+    file_type = db.Column(db.String(100), nullable=False)
+    file_path = db.Column(db.String(500), nullable=False)
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Foreign keys
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
+    uploaded_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    # Relationships
+    uploader = db.relationship('User', backref='uploaded_files')
+
+
+class ProjectCollaborator(db.Model):
+    __tablename__ = 'project_collaborators'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    role = db.Column(db.String(50), default='collaborator')  # owner, collaborator, viewer
+    invited_at = db.Column(db.DateTime, default=datetime.utcnow)
+    accepted_at = db.Column(db.DateTime)
+    status = db.Column(db.String(20), default='pending')  # pending, accepted, declined
+    
+    # Unique constraint
+    __table_args__ = (db.UniqueConstraint('project_id', 'user_id', name='unique_project_collaborator'),)
+    
+    # Relationships
+    project = db.relationship('Project', backref='collaborators')
+    user = db.relationship('User', backref='collaborations')
+
+
+class ProjectComment(db.Model):
+    __tablename__ = 'project_comments'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Foreign keys
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    # Relationships
+    project = db.relationship('Project', backref='comments')
+    author = db.relationship('User', backref='comments')
+
+
+class ActivityLog(db.Model):
+    __tablename__ = 'activity_logs'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    action = db.Column(db.String(100), nullable=False)  # created, updated, deleted, etc.
+    entity_type = db.Column(db.String(50), nullable=False)  # project, task, file, etc.
+    entity_id = db.Column(db.Integer, nullable=False)
+    description = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Foreign keys
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=True)
+    
+    # Relationships
+    user = db.relationship('User', backref='activities')
+    project = db.relationship('Project', backref='activities')
