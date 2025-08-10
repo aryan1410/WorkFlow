@@ -89,4 +89,13 @@ Preferred communication style: Simple, everyday language.
 - **Environment Variables**: Support for SESSION_SECRET environment variable
 - **Static Assets**: CSS and JavaScript files served via Flask static file handling
 
-Note: The application currently uses in-memory storage and lacks persistent database integration, making it suitable for development and testing but requiring database implementation for production use.
+## Documentation
+
+### README.md
+- **Comprehensive Documentation**: Complete project overview with feature descriptions, tech stack details, and repository structure
+- **Getting Started Guide**: Step-by-step installation and setup instructions
+- **User Guide**: Quick start guide for creating projects, using the study timer, and collaborating
+- **Development Guidelines**: Contributing guidelines and coding standards
+- **Future Roadmap**: Planned enhancements and feature additions
+
+The application now includes full PostgreSQL database integration and is production-ready with proper authentication, file management, and collaborative features.
