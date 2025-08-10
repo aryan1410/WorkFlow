@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Study Analytics - Academic Project Tracker{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="h2">
+            <i data-feather="bar-chart-2" class="me-2"></i>
+            Study Analytics
+        </h1>
+        <p class="text-muted">Track your study sessions and productivity over the last 30 days</p>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title">Total Study Time</h5>
+                        <h3 class="mb-0">{{ "%.1f"|format(total_time / 60) }} hours</h3>
+                    </div>
+                    <i data-feather="clock" style="width: 32px; height: 32px;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title">Study Sessions</h5>
+                        <h3 class="mb-0">{{ total_sessions }}</h3>
+                    </div>
+                    <i data-feather="play-circle" style="width: 32px; height: 32px;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title">Average Session</h5>
+                        <h3 class="mb-0">{{ "%.0f"|format(total_time / total_sessions if total_sessions > 0 else 0) }} min</h3>
+                    </div>
+                    <i data-feather="trending-up" style="width: 32px; height: 32px;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Sessions -->
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i data-feather="list" class="me-2"></i>
+                    Recent Study Sessions
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if sessions %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Project</th>
+                                    <th>Duration</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for session in sessions %}
+                                    <tr>
+                                        <td>{{ session.created_at.strftime('%b %d, %Y %I:%M %p') }}</td>
+                                        <td>
+                                            <a href="{{ url_for('project_detail', project_id=session.project_id) }}" class="text-decoration-none">
+                                                {{ session.project.title }}
+                                            </a>
+                                        </td>
+                                        <td>{{ session.duration_minutes }} min</td>
+                                        <td>{{ session.description or '-' }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i data-feather="clock" style="width: 48px; height: 48px;" class="text-muted mb-3"></i>
+                        <h5 class="text-muted">No Study Sessions Yet</h5>
+                        <p class="text-muted">Start logging your study time from project pages.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i data-feather="pie-chart" class="me-2"></i>
+                    Time by Project
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if project_time %}
+                    {% for project_id, time in project_time.items() %}
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <small>Project {{ project_id }}</small>
+                                <small>{{ "%.1f"|format(time / 60) }}h</small>
+                            </div>
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar" role="progressbar" 
+                                     style="width: {{ (time / total_time * 100) if total_time > 0 else 0 }}%"></div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center">No data to display</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

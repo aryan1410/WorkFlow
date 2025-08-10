@@ -1,23 +1,39 @@
-import os
-import logging
 from flask import Flask
-from datetime import datetime
+from flask_sqlalchemy import SQLAlchemy
+import os
+from werkzeug.middleware.proxy_fix import ProxyFix
+import logging
+from sqlalchemy.orm import DeclarativeBase
 
-# Configure logging for debugging
+# Configure logging
 logging.basicConfig(level=logging.DEBUG)
 
-# Create the Flask app
+class Base(DeclarativeBase):
+    pass
+
+# Initialize Flask app
 app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
+app.secret_key = os.environ.get("SESSION_SECRET")
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1) # needed for url_for to generate with https
 
-# In-memory storage for MVP
-app.config['PROJECTS'] = []
-app.config['TASKS'] = []
-app.config['PROJECT_COUNTER'] = 1
-app.config['TASK_COUNTER'] = 1
+# Database configuration
+database_url = os.environ.get("DATABASE_URL")
+if not database_url:
+    raise RuntimeError("DATABASE_URL environment variable must be set")
+    
+app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    'pool_pre_ping': True,
+    "pool_recycle": 300,
+}
 
-# Import routes after app creation to avoid circular imports
-from routes import *
+# No need to call db.init_app(app) here, it's already done in the constructor.
+db = SQLAlchemy(app, model_class=Base)
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+# Create tables
+# Need to put this in module-level to make it work with Gunicorn.
+with app.app_context():
+    import models  # noqa: F401
+    db.create_all()
+    logging.info("Database tables created")

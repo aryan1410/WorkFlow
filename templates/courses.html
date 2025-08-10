@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}Courses - Academic Project Tracker{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h2">
+                    <i data-feather="book" class="me-2"></i>
+                    My Courses
+                </h1>
+                <p class="text-muted">Manage your academic courses and track projects by subject</p>
+            </div>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCourseModal">
+                <i data-feather="plus" class="me-2"></i>
+                Add Course
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Courses Grid -->
+<div class="row">
+    {% if courses %}
+        {% for course in courses %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <h5 class="card-title mb-0">{{ course.name }}</h5>
+                            {% if course.credits %}
+                                <span class="badge bg-primary">{{ course.credits }} credits</span>
+                            {% endif %}
+                        </div>
+                        
+                        {% if course.code %}
+                            <p class="text-muted small mb-2">{{ course.code }}</p>
+                        {% endif %}
+                        
+                        {% if course.instructor %}
+                            <p class="card-text">
+                                <i data-feather="user" class="me-1" style="width: 16px; height: 16px;"></i>
+                                {{ course.instructor }}
+                            </p>
+                        {% endif %}
+                        
+                        {% if course.semester or course.year %}
+                            <p class="card-text text-muted">
+                                <i data-feather="calendar" class="me-1" style="width: 16px; height: 16px;"></i>
+                                {{ course.semester }} {{ course.year }}
+                            </p>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <small class="text-muted">
+                            <i data-feather="folder" class="me-1" style="width: 14px; height: 14px;"></i>
+                            {{ course.projects|length }} projects
+                        </small>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i data-feather="book-open" style="width: 64px; height: 64px;" class="text-muted mb-3"></i>
+                <h3 class="text-muted">No Courses Yet</h3>
+                <p class="text-muted mb-4">Add your academic courses to better organize your projects.</p>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCourseModal">
+                    <i data-feather="plus" class="me-2"></i>
+                    Add Your First Course
+                </button>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Add Course Modal -->
+<div class="modal fade" id="addCourseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i data-feather="plus" class="me-2"></i>
+                    Add New Course
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_course') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="courseName" class="form-label">Course Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="courseName" name="name" required>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="courseCode" class="form-label">Course Code</label>
+                                <input type="text" class="form-control" id="courseCode" name="code" placeholder="e.g., CS101">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="credits" class="form-label">Credits</label>
+                                <input type="number" class="form-control" id="credits" name="credits" min="1" max="10">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="semester" class="form-label">Semester</label>
+                                <select class="form-select" id="semester" name="semester">
+                                    <option value="">Select semester</option>
+                                    <option value="Spring">Spring</option>
+                                    <option value="Summer">Summer</option>
+                                    <option value="Fall">Fall</option>
+                                    <option value="Winter">Winter</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="year" class="form-label">Year</label>
+                                <input type="number" class="form-control" id="year" name="year" 
+                                       value="{{ current_year }}" min="2020" max="2030">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="instructor" class="form-label">Instructor</label>
+                        <input type="text" class="form-control" id="instructor" name="instructor" placeholder="Professor name">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i data-feather="save" class="me-2"></i>
+                        Add Course
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialize feather icons after modal opens
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('addCourseModal');
+        modal.addEventListener('shown.bs.modal', function() {
+            feather.replace();
+        });
+    });
+</script>
+{% endblock %}

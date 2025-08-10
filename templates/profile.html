@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - Academic Project Tracker{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="h2">
+            <i data-feather="user" class="me-2"></i>
+            Profile
+        </h1>
+        <p class="text-muted">Your academic progress and statistics</p>
+    </div>
+</div>
+
+<!-- User Info -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                {% if current_user.profile_image_url %}
+                    <img src="{{ current_user.profile_image_url }}" alt="Profile" 
+                         class="rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover;">
+                {% else %}
+                    <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                         style="width: 120px; height: 120px;">
+                        <i data-feather="user" style="width: 48px; height: 48px;" class="text-white"></i>
+                    </div>
+                {% endif %}
+                
+                <h4 class="mb-1">
+                    {% if current_user.first_name or current_user.last_name %}
+                        {{ current_user.first_name }} {{ current_user.last_name }}
+                    {% else %}
+                        Student
+                    {% endif %}
+                </h4>
+                
+                {% if current_user.email %}
+                    <p class="text-muted mb-3">{{ current_user.email }}</p>
+                {% endif %}
+                
+                <small class="text-muted">
+                    Member since {{ current_user.created_at.strftime('%B %Y') if current_user.created_at else 'Recently' }}
+                </small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title">Total Projects</h6>
+                                <h3 class="mb-0">{{ total_projects }}</h3>
+                            </div>
+                            <i data-feather="folder" style="width: 32px; height: 32px;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title">Completed Projects</h6>
+                                <h3 class="mb-0">{{ completed_projects }}</h3>
+                            </div>
+                            <i data-feather="check-circle" style="width: 32px; height: 32px;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title">Total Tasks</h6>
+                                <h3 class="mb-0">{{ total_tasks }}</h3>
+                            </div>
+                            <i data-feather="check-square" style="width: 32px; height: 32px;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+                <div class="card bg-warning text-dark">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title">Study Time</h6>
+                                <h3 class="mb-0">{{ "%.1f"|format(total_study_time / 60) }}h</h3>
+                            </div>
+                            <i data-feather="clock" style="width: 32px; height: 32px;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Progress Overview -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i data-feather="trending-up" class="me-2"></i>
+                    Project Completion Rate
+                </h6>
+            </div>
+            <div class="card-body">
+                {% set completion_rate = (completed_projects / total_projects * 100) if total_projects > 0 else 0 %}
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Projects Completed</span>
+                    <span>{{ "%.1f"|format(completion_rate) }}%</span>
+                </div>
+                <div class="progress mb-3" style="height: 10px;">
+                    <div class="progress-bar bg-success" role="progressbar" 
+                         style="width: {{ completion_rate }}%"></div>
+                </div>
+                
+                {% set task_completion_rate = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0 %}
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Tasks Completed</span>
+                    <span>{{ "%.1f"|format(task_completion_rate) }}%</span>
+                </div>
+                <div class="progress" style="height: 10px;">
+                    <div class="progress-bar bg-info" role="progressbar" 
+                         style="width: {{ task_completion_rate }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i data-feather="target" class="me-2"></i>
+                    Academic Goals
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if total_projects > 0 %}
+                    <div class="mb-3">
+                        <div class="d-flex align-items-center mb-2">
+                            {% if completion_rate >= 80 %}
+                                <i data-feather="check-circle" class="text-success me-2"></i>
+                                <span class="text-success">Excellent project completion!</span>
+                            {% elif completion_rate >= 60 %}
+                                <i data-feather="trending-up" class="text-warning me-2"></i>
+                                <span class="text-warning">Good progress on projects</span>
+                            {% else %}
+                                <i data-feather="target" class="text-danger me-2"></i>
+                                <span class="text-danger">Focus on completing projects</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-flex align-items-center mb-2">
+                            {% if total_study_time >= 600 %}
+                                <i data-feather="check-circle" class="text-success me-2"></i>
+                                <span class="text-success">Great study commitment!</span>
+                            {% elif total_study_time >= 300 %}
+                                <i data-feather="clock" class="text-warning me-2"></i>
+                                <span class="text-warning">Building good study habits</span>
+                            {% else %}
+                                <i data-feather="clock" class="text-muted me-2"></i>
+                                <span class="text-muted">Start tracking study time</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted">
+                        <i data-feather="target" style="width: 48px; height: 48px;" class="mb-2"></i>
+                        <p>Create your first project to see goals and progress tracking.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
