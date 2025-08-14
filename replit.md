@@ -14,7 +14,7 @@ Preferred communication style: Simple, everyday language.
 - **Template Engine**: Jinja2 templating with Flask for server-side rendering
 - **UI Framework**: Bootstrap 5 with dark theme support for responsive design
 - **Icons**: Feather Icons for consistent iconography
-- **JavaScript**: Vanilla JavaScript for client-side interactions and form validation
+- **JavaScript**: Vanilla JavaScript for client-side interactions, form validation, and desktop notification system
 - **Styling**: Custom CSS overrides on top of Bootstrap for application-specific styling
 
 ### Backend Architecture
@@ -60,6 +60,7 @@ Preferred communication style: Simple, everyday language.
 - **Study Analytics**: Comprehensive study session tracking with visualizations and progress charts
 - **Study Timer**: Built-in timer functionality for tracking study sessions with real-time clock
 - **Data Visualization**: Chart.js powered charts for weekly study patterns and project breakdowns
+- **Desktop Notifications**: Browser-based desktop notifications for study session reminders, deadline alerts, task completions, and collaboration updates
 
 ## External Dependencies
 

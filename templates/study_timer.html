@@ -246,6 +246,11 @@ document.getElementById('confirm-stop').addEventListener('click', async () => {
         const data = await response.json();
         
         if (data.success) {
+            // Send notification if available
+            if (window.studyNotifier) {
+                window.studyNotifier.stopSession();
+            }
+            
             // Reset timer
             timer.isRunning = false;
             timer.sessionId = null;
@@ -319,6 +324,11 @@ function attachEventListeners() {
                 timer.sessionId = data.session_id;
                 timer.startTime = new Date(data.start_time);
                 timer.elapsedTime = 0;
+                
+                // Send notification if available
+                if (window.studyNotifier) {
+                    window.studyNotifier.startSession(projectId ? document.querySelector(`option[value="${projectId}"]`).textContent : 'General Study');
+                }
                 
                 // Update UI
                 document.getElementById('project-select').disabled = true;
