@@ -269,21 +269,36 @@ let notificationManager;
 let studyNotifier;
 let deadlineMonitor;
 
-document.addEventListener('DOMContentLoaded', function() {
+// Test notification function for debugging
+function testNotification() {
+    if (Notification.permission === 'granted') {
+        new Notification('🧪 Test Notification', {
+            body: 'Desktop notifications are working correctly!',
+            icon: '/static/favicon.ico'
+        });
+    } else {
+        console.log('Notifications not enabled. Permission:', Notification.permission);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', async function() {
     // Initialize notification system
     notificationManager = new NotificationManager();
     studyNotifier = new StudySessionNotifier(notificationManager);
     deadlineMonitor = new DeadlineMonitor(notificationManager);
     
+    // Wait for initialization to complete
+    await notificationManager.init();
+    
     // Start deadline monitoring
     deadlineMonitor.startMonitoring();
     
-    // Request notification permission with user-friendly prompt
+    // Show permission prompt for new users after page loads
     setTimeout(() => {
-        if (notificationManager.permission === 'default') {
+        if (Notification.permission === 'default') {
             showNotificationPermissionPrompt();
         }
-    }, 3000);
+    }, 2000);
     
     // Add notification integration to existing functionality
     integrateWithExistingFeatures();
@@ -291,40 +306,77 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // User-friendly notification permission prompt
 function showNotificationPermissionPrompt() {
+    // Don't show if already shown or dismissed
+    if (document.querySelector('.notification-prompt') || localStorage.getItem('notifications_dismissed')) {
+        return;
+    }
+    
     const promptHtml = `
-        <div class="alert alert-info alert-dismissible fade show notification-prompt" role="alert">
-            <i data-feather="bell" class="me-2"></i>
-            <strong>Enable Desktop Notifications</strong>
-            <p class="mb-2">Get notified about:</p>
-            <ul class="mb-2">
-                <li>Study session reminders</li>
-                <li>Upcoming project deadlines</li>
-                <li>Task completions</li>
-                <li>Team collaboration updates</li>
-            </ul>
-            <button type="button" class="btn btn-primary btn-sm me-2" onclick="enableNotifications()">Enable</button>
-            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="dismissNotificationPrompt()">Maybe Later</button>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <div class="alert alert-primary alert-dismissible fade show notification-prompt position-fixed" 
+             style="top: 20px; left: 50%; transform: translateX(-50%); z-index: 1050; max-width: 500px;" role="alert">
+            <div class="d-flex align-items-start">
+                <i data-feather="bell" class="me-2 mt-1" style="width: 20px; height: 20px;"></i>
+                <div class="flex-grow-1">
+                    <h6 class="alert-heading mb-2">🔔 Enable Desktop Notifications</h6>
+                    <p class="mb-2 small">Stay on top of your studies with notifications for:</p>
+                    <ul class="mb-3 small">
+                        <li>Study session reminders every 25 minutes</li>
+                        <li>Project deadlines (3 days before due)</li>
+                        <li>Task completion celebrations</li>
+                        <li>Break reminders after long study sessions</li>
+                    </ul>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="enableNotifications()">
+                            <i data-feather="check" style="width: 14px; height: 14px;" class="me-1"></i>
+                            Enable Notifications
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="dismissNotificationPrompt()">
+                            Maybe Later
+                        </button>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-sm" onclick="dismissNotificationPrompt()"></button>
+            </div>
         </div>
     `;
     
-    const container = document.querySelector('.container') || document.body;
-    container.insertAdjacentHTML('afterbegin', promptHtml);
+    document.body.insertAdjacentHTML('afterbegin', promptHtml);
     
     // Replace feather icons
     if (typeof feather !== 'undefined') {
         feather.replace();
     }
+    
+    console.log('Notification permission prompt shown');
 }
 
 async function enableNotifications() {
-    await notificationManager.init();
+    console.log('Enabling notifications...');
     
-    if (notificationManager.canNotify()) {
-        notificationManager.show('🔔 Notifications Enabled!', {
-            body: 'You\'ll now receive study reminders and deadline alerts.',
-            tag: 'notifications-enabled'
-        });
+    try {
+        // Request permission
+        const permission = await Notification.requestPermission();
+        console.log('Permission result:', permission);
+        
+        if (permission === 'granted') {
+            // Update notification manager
+            notificationManager.permission = permission;
+            notificationManager.enabled = true;
+            
+            // Show success notification
+            const notification = new Notification('🔔 Notifications Enabled!', {
+                body: 'You\'ll now receive study reminders and deadline alerts.',
+                icon: '/static/favicon.ico'
+            });
+            
+            setTimeout(() => notification.close(), 5000);
+            
+            console.log('Notifications enabled successfully');
+        } else {
+            console.log('Notification permission denied');
+        }
+    } catch (error) {
+        console.error('Error enabling notifications:', error);
     }
     
     dismissNotificationPrompt();
@@ -335,6 +387,10 @@ function dismissNotificationPrompt() {
     if (prompt) {
         prompt.remove();
     }
+    
+    // Remember dismissal for this session
+    localStorage.setItem('notifications_dismissed', 'true');
+    console.log('Notification prompt dismissed');
 }
 
 // Integrate notifications with existing features
@@ -380,5 +436,6 @@ window.studyNotifier = studyNotifier;
 window.deadlineMonitor = deadlineMonitor;
 window.enableNotifications = enableNotifications;
 window.dismissNotificationPrompt = dismissNotificationPrompt;
+window.testNotification = testNotification;
 
 console.log('Desktop notifications system loaded');
