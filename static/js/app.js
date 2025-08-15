@@ -1,4 +1,4 @@
-// Academic Project Tracker - Main JavaScript File
+// Workflow - Main JavaScript File
 
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize application
@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
  * Initialize the application
  */
 function initializeApp() {
-    console.log('Academic Project Tracker initialized');
+    console.log('Workflow initialized');
     
     // Set current date for comparisons
     window.currentDate = new Date();

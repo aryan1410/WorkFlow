@@ -1,4 +1,4 @@
-// Desktop Notifications for Academic Project Tracker
+// Desktop Notifications for Workflow
 // Provides study session reminders, deadline alerts, and task completion notifications
 
 class NotificationManager {

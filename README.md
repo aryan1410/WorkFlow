@@ -1,12 +1,12 @@
-# Academic Project Tracker
+# Workflow
 
 A comprehensive Flask-based web application designed to help students organize, manage, and track their academic projects with advanced collaborative features, study analytics, and productivity tools.
 
-![Academic Project Tracker](https://img.shields.io/badge/Flask-2.3+-blue.svg) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-green.svg) ![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-purple.svg) ![Python](https://img.shields.io/badge/Python-3.11+-yellow.svg)
+![Workflow](https://img.shields.io/badge/Flask-2.3+-blue.svg) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-green.svg) ![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-purple.svg) ![Python](https://img.shields.io/badge/Python-3.11+-yellow.svg)
 
 ## 🎯 Application Overview
 
-The Academic Project Tracker is built for students who need a centralized platform to manage their academic workload effectively. Whether you're working on individual assignments or collaborating on group projects, this application provides the tools you need to stay organized, track progress, and maintain productivity throughout your academic journey.
+The Workflow is built for students who need a centralized platform to manage their academic workload effectively. Whether you're working on individual assignments or collaborating on group projects, this application provides the tools you need to stay organized, track progress, and maintain productivity throughout your academic journey.
 
 ### Key Use Cases
 - **Project Management**: Organize academic projects by course with detailed tracking
@@ -55,7 +55,6 @@ The Academic Project Tracker is built for students who need a centralized platfo
 - **Custom User Authentication**: Secure registration and login system
 - **Password Security**: Werkzeug-powered password hashing with strength validation
 - **Session Management**: Flask sessions with CSRF protection
-- **Email Verification**: Simplified registration process (verification removed for ease of use)
 - **Data Isolation**: User-specific data access with proper authorization checks
 
 ## 🛠 Technology Stack
@@ -90,7 +89,8 @@ The Academic Project Tracker is built for students who need a centralized platfo
 ### Development & Deployment
 - **Flask Debug Mode**: Development server with auto-reload
 - **Python Logging**: Comprehensive error tracking and debugging
-- **Replit Integration**: Optimized for Replit deployment environment
+- **Render Integration**: Optimized for Render deployment environment
+- **Neon Database**: PostgreSQL db instance created on Neon, deployed on AWS
 
 ## 📁 Repository Structure
 
@@ -127,13 +127,10 @@ academic-project-tracker/
 ├── auth.py                    # Authentication routes and logic
 ├── forms.py                   # WTForms form definitions
 ├── utils.py                   # Utility functions and helpers
-├── replit.md                  # Project documentation and preferences
-├── pyproject.toml            # Python dependencies and project metadata
-├── uv.lock                   # Dependency lock file
-├── requirements-deploy.txt   # Deployment dependencies list
-├── DEPLOYMENT.md            # Comprehensive deployment guide
-├── .replit                   # Replit configuration
-└── README.md                 # This file
+├── pyproject.toml             # Python dependencies and project metadata
+├── uv.lock                    # Dependency lock file
+├── requirements.txt           # Deployment dependencies list
+└── README.md                  # This file
 ```
 
 ### Key Files Explained
@@ -156,60 +153,9 @@ academic-project-tracker/
 
 #### Configuration Files
 - **`pyproject.toml`**: Python project configuration and dependencies
-- **`.replit`**: Replit-specific configuration for hosting
-- **`replit.md`**: Project documentation and user preferences
+- **`requirements.txt`**: Project deployment dependencies
 
 ## 🚀 Getting Started
-
-### Prerequisites
-- Python 3.11 or higher
-- PostgreSQL 15 or higher
-- Modern web browser
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd academic-project-tracker
-   ```
-
-2. **Install dependencies**
-   ```bash
-   # Using uv (recommended for Replit)
-   uv sync
-   
-   # Or using pip with requirements file
-   pip install -r requirements-deploy.txt
-   
-   # Or install manually
-   pip install flask flask-login flask-sqlalchemy flask-wtf sqlalchemy psycopg2-binary wtforms email-validator werkzeug itsdangerous pillow gunicorn
-   ```
-
-3. **Set up environment variables**
-   ```bash
-   export DATABASE_URL="postgresql://username:password@localhost/academic_tracker"
-   export SESSION_SECRET="your-secret-key-here"
-   ```
-
-4. **Initialize the database**
-   ```bash
-   python -c "from app import app, db; app.app_context().push(); db.create_all()"
-   ```
-
-5. **Run the application**
-   ```bash
-   python main.py
-   # or for production
-   gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app
-   ```
-
-6. **Access the application**
-   - Open your browser to `http://localhost:5000`
-   - Register a new account or login with existing credentials
-
-### Quick Start Guide
-
 1. **Create Your First Project**
    - Click "New Project" in the navigation
    - Fill in project details, select a course, and set deadline
@@ -231,9 +177,7 @@ academic-project-tracker/
    - Monitor your study habits and session statistics
 
 ## 🎨 User Interface
-
 The application features a modern, responsive design built with Bootstrap 5 and a dark theme optimized for extended study sessions. Key UI elements include:
-
 - **Responsive Navigation**: Collapsible navbar with user menu and feature access
 - **Dashboard Cards**: Quick overview of projects, tasks, and recent activity
 - **Interactive Charts**: Study analytics with hoverable data points and tooltips
@@ -242,69 +186,10 @@ The application features a modern, responsive design built with Bootstrap 5 and 
 - **File Thumbnails**: Image previews for uploaded project files
 - **Real-time Timer**: Large, easy-to-read study session timer
 
-## 🔧 Configuration
-
-### Environment Variables
-- `DATABASE_URL`: PostgreSQL connection string
-- `SESSION_SECRET`: Flask session secret key
-- `SENDGRID_API_KEY`: Email service API key (optional)
-
-### File Upload Settings
+## File Upload Settings
 - Maximum file size: 16MB
 - Allowed file types: Documents, images, archives
-- Storage location: `uploads/` directory
 - Thumbnail generation: Automatic for image files
-
-### Database Configuration
-- Connection pooling with 300-second recycle
-- Pre-ping enabled for connection health checks
-- Automatic table creation on startup
-
-## 🤝 Contributing
-
-Contributions are welcome! Please follow these guidelines:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes with proper documentation
-4. Add tests for new functionality
-5. Commit your changes (`git commit -m 'Add amazing feature'`)
-6. Push to the branch (`git push origin feature/amazing-feature`)
-7. Open a Pull Request
-
-### Development Guidelines
-- Follow PEP 8 Python style guidelines
-- Add docstrings to all functions and classes
-- Update README.md for significant feature additions
-- Test thoroughly before submitting pull requests
-
-## 📜 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙋 Support
-
-If you encounter any issues or have questions:
-
-1. Check the existing issues in the repository
-2. Create a new issue with detailed information
-3. Include error messages and steps to reproduce
-4. For feature requests, provide clear use cases and benefits
-
-## 🚀 Deployment
-
-For detailed deployment instructions and configuration options, see [DEPLOYMENT.md](DEPLOYMENT.md).
-
-### Quick Deploy Options
-
-- **Replit**: Fork this repository and click Run (fully configured)
-- **Heroku**: `git push heroku main` after configuring PostgreSQL addon
-- **Docker**: Use the provided Dockerfile for containerized deployment
-- **Traditional VPS**: Follow the Ubuntu/Debian setup guide in DEPLOYMENT.md
-
-### Dependencies
-
-All dependencies are listed in `pyproject.toml` for uv/pip installation, or use `requirements-deploy.txt` for traditional deployments.
 
 ## 🔮 Future Enhancements
 
@@ -319,4 +204,4 @@ All dependencies are listed in `pyproject.toml` for uv/pip installation, or use 
 
 ---
 
-Built with ❤️ for students, by students. Happy studying! 📚
+Built with ❤️ for students, by a student. Happy studying! 📚

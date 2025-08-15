@@ -1,5 +1,4 @@
-# Academic Project Tracker - Deployment Dependencies
-# Copy these dependencies to your requirements.txt file for deployment
+# Workflow - Deployment Dependencies
 
 # Core Flask Framework
 Flask>=3.1.1

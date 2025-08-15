@@ -64,10 +64,10 @@ def send_verification_email(user_email, verification_url):
         message = Mail(
             from_email='noreply@academictracker.app',
             to_emails=user_email,
-            subject='Verify Your Academic Project Tracker Account',
+            subject='Verify Your Workflow Account',
             html_content=f'''
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #333;">Welcome to Academic Project Tracker!</h2>
+                <h2 style="color: #333;">Welcome to Workflow!</h2>
                 <p>Thank you for registering. Please verify your email address by clicking the button below:</p>
                 <div style="text-align: center; margin: 30px 0;">
                     <a href="{verification_url}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Verify Email Address</a>
@@ -99,7 +99,7 @@ def send_password_reset_email(user_email, reset_url):
         message = Mail(
             from_email='noreply@academictracker.app',
             to_emails=user_email,
-            subject='Reset Your Academic Project Tracker Password',
+            subject='Reset Your Workflow Password',
             html_content=f'''
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <h2 style="color: #333;">Password Reset Request</h2>
