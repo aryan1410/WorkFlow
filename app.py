@@ -16,11 +16,9 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET") or "dev-secret-key-change-in-production"
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1) # needed for url_for to generate with https
 
-# Database configuration
-database_url = os.environ.get("DATABASE_URL")
-if not database_url:
-    raise RuntimeError("DATABASE_URL environment variable must be set")
-    
+# Database configuration - using Neon PostgreSQL
+database_url = os.environ.get("DATABASE_URL") or "postgresql://neondb_owner:npg_Jlv5GwQdK9YP@ep-misty-firefly-af5d0v2c-pooler.c-2.us-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
