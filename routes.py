@@ -13,6 +13,12 @@ from forms import (LoginForm, RegisterForm, ForgotPasswordForm, ResetPasswordFor
 from utils import save_uploaded_file, format_file_size, get_file_icon, log_activity
 
 
+@app.route('/health')
+def health_check():
+    """Health check endpoint for deployment platforms"""
+    return {'status': 'healthy', 'timestamp': datetime.utcnow().isoformat()}, 200
+
+
 @app.route('/')
 def index():
     """Dashboard view - shows landing page for logged out users, dashboard for logged in users"""
