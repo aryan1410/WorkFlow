@@ -178,6 +178,7 @@ document.getElementById('start-btn')?.addEventListener('click', async () => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
             },
             body: JSON.stringify({ project_id: projectId })
         });
@@ -236,6 +237,7 @@ document.getElementById('confirm-stop').addEventListener('click', async () => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
             },
             body: JSON.stringify({ 
                 session_id: timer.sessionId,

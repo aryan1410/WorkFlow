@@ -83,9 +83,13 @@
                                     <tr>
                                         <td>{{ session.created_at.strftime('%b %d, %Y %I:%M %p') }}</td>
                                         <td>
-                                            <a href="{{ url_for('project_detail', project_id=session.project_id) }}" class="text-decoration-none">
-                                                {{ session.project.title }}
-                                            </a>
+                                            {% if session.project_id and session.project %}
+                                                <a href="{{ url_for('project_detail', project_id=session.project_id) }}" class="text-decoration-none">
+                                                    {{ session.project.title }}
+                                                </a>
+                                            {% else %}
+                                                <span class="text-muted">General Study</span>
+                                            {% endif %}
                                         </td>
                                         <td>{{ session.get_duration_formatted() }}</td>
                                         <td>{{ session.description or '-' }}</td>

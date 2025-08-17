@@ -161,8 +161,8 @@ class StudySession(db.Model):
     is_active = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    # Foreign key to Project
-    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
+    # Foreign key to Project (optional - can study without specific project)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=True)
     
     # Foreign key to User
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)

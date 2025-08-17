@@ -901,42 +901,51 @@ def analytics():
 @login_required
 def study_timer():
     """Study timer page"""
+    from flask_wtf.csrf import generate_csrf
     projects = Project.query.filter_by(user_id=current_user.id).all()
     active_session = StudySession.query.filter_by(user_id=current_user.id, is_active=True).first()
     
     return render_template('study_timer.html', 
                          projects=projects,
-                         active_session=active_session)
+                         active_session=active_session,
+                         csrf_token=generate_csrf())
 
 
 @app.route('/api/study-session/start', methods=['POST'])
 @login_required
 def start_study_session():
     """Start a new study session"""
-    project_id = request.json.get('project_id')
-    
-    # Check if there's already an active session
-    active_session = StudySession.query.filter_by(user_id=current_user.id, is_active=True).first()
-    if active_session:
-        return jsonify({'error': 'You already have an active study session'}), 400
-    
-    # Create new session
-    session = StudySession(
-        user_id=current_user.id,
-        project_id=project_id,
-        start_time=datetime.utcnow(),
-        is_active=True,
-        duration_minutes=0
-    )
-    
-    db.session.add(session)
-    db.session.commit()
-    
-    return jsonify({
-        'success': True,
-        'session_id': session.id,
-        'start_time': session.start_time.isoformat()
-    })
+    try:
+        # First rollback any pending transactions
+        db.session.rollback()
+        
+        project_id = request.json.get('project_id') if request.json else None
+        
+        # Check if there's already an active session
+        active_session = StudySession.query.filter_by(user_id=current_user.id, is_active=True).first()
+        if active_session:
+            return jsonify({'error': 'You already have an active study session'}), 400
+        
+        # Create new session (project_id can be None for general study)
+        session = StudySession(
+            user_id=current_user.id,
+            project_id=project_id if project_id else None,
+            start_time=datetime.utcnow(),
+            is_active=True,
+            duration_minutes=0
+        )
+        
+        db.session.add(session)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'session_id': session.id,
+            'start_time': session.start_time.isoformat()
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/study-session/stop', methods=['POST'])

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Email Verification Required - Workflow{% endblock %}
+{% block title %}Welcome - Workflow{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -8,31 +8,21 @@
         <div class="card shadow">
             <div class="card-body text-center">
                 <div class="mb-4">
-                    <i data-feather="mail" style="width: 64px; height: 64px;" class="text-warning mb-3"></i>
-                    <h2 class="h4 mb-2">Email Verification Required</h2>
+                    <i data-feather="check-circle" style="width: 64px; height: 64px;" class="text-success mb-3"></i>
+                    <h2 class="h4 mb-2">Account Created Successfully!</h2>
                     <p class="text-muted">
-                        Please verify your email address to access all features of the Workflow.
+                        Your account is ready. You can now access all features of Workflow.
                     </p>
                 </div>
 
-                <div class="alert alert-warning">
-                    <strong>Check your email:</strong> We've sent a verification link to <strong>{{ current_user.email }}</strong>
-                </div>
-
-                <div class="mb-4">
-                    <p class="text-muted">
-                        Didn't receive the email? Check your spam folder or request a new verification email.
-                    </p>
-                    <a href="{{ url_for('resend_verification') }}" class="btn btn-outline-primary">
-                        <i data-feather="refresh-cw" class="me-2"></i>
-                        Resend Verification Email
-                    </a>
+                <div class="alert alert-success">
+                    <strong>Welcome!</strong> Your account <strong>{{ current_user.email }}</strong> has been created and is ready to use.
                 </div>
 
                 <div class="text-center">
-                    <a href="{{ url_for('logout') }}" class="btn btn-outline-secondary">
-                        <i data-feather="log-out" class="me-2"></i>
-                        Sign Out
+                    <a href="{{ url_for('index') }}" class="btn btn-primary">
+                        <i data-feather="home" class="me-2"></i>
+                        Go to Dashboard
                     </a>
                 </div>
             </div>
