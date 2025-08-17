@@ -19,6 +19,24 @@ def health_check():
     return {'status': 'healthy', 'timestamp': datetime.utcnow().isoformat()}, 200
 
 
+@app.route('/robots.txt')
+def robots_txt():
+    """Robots.txt for search engine crawlers and social media bots"""
+    return """User-agent: *
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+Sitemap: https://workfloww.fly.dev/sitemap.xml""", 200, {'Content-Type': 'text/plain'}
+
+
 @app.route('/')
 def index():
     """Dashboard view - shows landing page for logged out users, dashboard for logged in users"""
