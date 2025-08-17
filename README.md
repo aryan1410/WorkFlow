@@ -1,4 +1,4 @@
-# [Workflow](https://workflow-3k5e.onrender.com/)
+# [Workflow](https://workfloww.fly.dev/)
 
 A comprehensive Flask-based web application designed to help students organize, manage, and track their academic projects with advanced collaborative features, study analytics, and productivity tools.
 
@@ -89,7 +89,7 @@ The Workflow is built for students who need a centralized platform to manage the
 ### Development & Deployment
 - **Flask Debug Mode**: Development server with auto-reload
 - **Python Logging**: Comprehensive error tracking and debugging
-- **Render Integration**: Optimized for Render deployment environment
+- **Fly.io Integration**: Optimized for containerized Fly.io deployment environment via Docker
 - **Neon Database**: PostgreSQL db instance created on Neon, deployed on AWS
 
 ## 📁 Repository Structure
@@ -128,6 +128,8 @@ academic-project-tracker/
 ├── forms.py                   # WTForms form definitions
 ├── utils.py                   # Utility functions and helpers
 ├── pyproject.toml             # Python dependencies and project metadata
+├── fly.toml                   # Fly deployment metadata
+├── Dockerfile                 # Docker container metadata
 ├── uv.lock                    # Dependency lock file
 ├── requirements.txt           # Deployment dependencies list
 └── README.md                  # This file
@@ -153,6 +155,7 @@ academic-project-tracker/
 
 #### Configuration Files
 - **`pyproject.toml`**: Python project configuration and dependencies
+- **`fly.toml`**: Fly.io deployment configuration and dependencies
 - **`requirements.txt`**: Project deployment dependencies
 
 ## 🚀 Getting Started
