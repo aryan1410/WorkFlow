@@ -353,7 +353,7 @@ def new_task(project_id):
     
     title = request.form.get('title', '').strip()
     description = request.form.get('description', '').strip()
-    priority = request.form.get('priority', Priority.MEDIUM.value)
+    priority_str = request.form.get('priority', 'Medium')
     due_date_str = request.form.get('due_date', '').strip()
     
     if not title:
@@ -373,7 +373,7 @@ def new_task(project_id):
         project_id=project_id,
         title=title,
         description=description,
-        priority=Priority(priority),
+        priority=Priority.HIGH if priority_str.upper() == 'HIGH' else (Priority.LOW if priority_str.upper() == 'LOW' else Priority.MEDIUM),
         due_date=due_date
     )
     
