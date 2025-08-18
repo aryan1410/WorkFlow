@@ -88,6 +88,9 @@ class Project(db.Model):
     notes = db.relationship('ProjectNote', backref='project', lazy=True, cascade='all, delete-orphan')
     study_sessions = db.relationship('StudySession', backref='project', lazy=True, cascade='all, delete-orphan')
     files = db.relationship('ProjectFile', backref='project', lazy=True, cascade='all, delete-orphan')
+    collaborators = db.relationship('ProjectCollaborator', backref='project_ref', lazy=True, cascade='all, delete-orphan')
+    comments = db.relationship('ProjectComment', backref='project_ref', lazy=True, cascade='all, delete-orphan')
+    activities = db.relationship('ActivityLog', backref='project_ref', lazy=True, cascade='all, delete-orphan')
 
     
     def get_collaborators(self):
@@ -227,7 +230,6 @@ class ProjectCollaborator(db.Model):
     __table_args__ = (db.UniqueConstraint('project_id', 'user_id', name='unique_project_collaborator'),)
     
     # Relationships
-    project = db.relationship('Project', backref='collaborators')
     user = db.relationship('User', backref='collaborations')
 
 
@@ -244,7 +246,6 @@ class ProjectComment(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     
     # Relationships
-    project = db.relationship('Project', backref='comments')
     author = db.relationship('User', backref='comments')
 
 
@@ -264,4 +265,3 @@ class ActivityLog(db.Model):
     
     # Relationships
     user = db.relationship('User', backref='activities')
-    project = db.relationship('Project', backref='activities')
