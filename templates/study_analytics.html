@@ -56,6 +56,36 @@
     </div>
 </div>
 
+<!-- Charts -->
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i data-feather="bar-chart-2" class="me-2"></i>
+                    Weekly Study Pattern
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="weeklyChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i data-feather="pie-chart" class="me-2"></i>
+                    Time by Project
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="projectChart" height="150"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Recent Sessions -->
 <div class="row">
     <div class="col-lg-8">
@@ -113,8 +143,8 @@
         <div class="card">
             <div class="card-header">
                 <h6 class="mb-0">
-                    <i data-feather="pie-chart" class="me-2"></i>
-                    Time by Project
+                    <i data-feather="bar-chart" class="me-2"></i>
+                    Project Summary
                 </h6>
             </div>
             <div class="card-body">
@@ -138,4 +168,121 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Wait for Chart.js to load
+function initializeCharts() {
+    if (typeof Chart === 'undefined') {
+        setTimeout(initializeCharts, 100);
+        return;
+    }
+    // Debug logging
+    console.log('Chart.js loaded, initializing charts...');
+    
+    // Weekly chart data
+    const weekData = {{ week_data|tojson }};
+    console.log('Week data:', weekData);
+    
+    const weeklyCtx = document.getElementById('weeklyChart').getContext('2d');
+    
+    new Chart(weeklyCtx, {
+        type: 'bar',
+        data: {
+            labels: weekData.map(d => d.day),
+            datasets: [{
+                label: 'Study Hours',
+                data: weekData.map(d => d.hours),
+                backgroundColor: 'rgba(13, 110, 253, 0.8)',
+                borderColor: 'rgba(13, 110, 253, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value + 'h';
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Project pie chart data
+    const projectStats = {{ project_stats|tojson }};
+    console.log('Project stats:', projectStats);
+    
+    const projectCtx = document.getElementById('projectChart').getContext('2d');
+    
+    if (Object.keys(projectStats).length > 0) {
+        const colors = [
+            'rgba(13, 110, 253, 0.8)',
+            'rgba(25, 135, 84, 0.8)', 
+            'rgba(253, 126, 20, 0.8)',
+            'rgba(220, 53, 69, 0.8)',
+            'rgba(111, 66, 193, 0.8)',
+            'rgba(13, 202, 240, 0.8)'
+        ];
+        
+        new Chart(projectCtx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(projectStats),
+                datasets: [{
+                    data: Object.values(projectStats).map(s => s.minutes),
+                    backgroundColor: colors.slice(0, Object.keys(projectStats).length),
+                    borderWidth: 2,
+                    borderColor: '#212529'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15,
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const minutes = context.raw;
+                                const hours = Math.round(minutes / 60 * 10) / 10;
+                                return context.label + ': ' + hours + 'h';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    } else {
+        // Show message if no data
+        projectCtx.canvas.style.display = 'none';
+        const noDataDiv = document.createElement('div');
+        noDataDiv.className = 'text-center text-muted py-4';
+        noDataDiv.innerHTML = '<i data-feather="pie-chart" style="width: 48px; height: 48px;" class="mb-3"></i><br>No project data yet';
+        projectCtx.canvas.parentElement.appendChild(noDataDiv);
+        feather.replace();
+    }
+}
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', initializeCharts);
+</script>
 {% endblock %}

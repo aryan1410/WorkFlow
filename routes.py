@@ -264,6 +264,7 @@ def project_detail(project_id):
                          file_form=file_form,
                          comment_form=comment_form,
                          invite_form=invite_form,
+                         form=comment_form,  # General form for CSRF tokens
                          today=datetime.utcnow())
 
 
@@ -911,6 +912,15 @@ def analytics():
                 project_stats[project.title] = {'minutes': 0, 'sessions': 0}
             project_stats[project.title]['minutes'] += session.duration_minutes
             project_stats[project.title]['sessions'] += 1
+    
+    # Include sessions without projects as "General Study"
+    general_study_minutes = sum(s.duration_minutes for s in sessions if s.project is None)
+    general_study_sessions = len([s for s in sessions if s.project is None])
+    if general_study_sessions > 0:
+        project_stats["General Study"] = {
+            'minutes': general_study_minutes,
+            'sessions': general_study_sessions
+        }
     
     # Sort by minutes studied
     project_stats = dict(sorted(project_stats.items(), key=lambda x: x[1]['minutes'], reverse=True))
