@@ -74,7 +74,7 @@ class Project(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text)
-    course = db.Column(db.String(100))
+    course = db.Column(db.String(100))  # Keep for backward compatibility
     status = db.Column(db.Enum(ProjectStatus), default=ProjectStatus.NOT_STARTED)
     deadline = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -88,6 +88,7 @@ class Project(db.Model):
     notes = db.relationship('ProjectNote', backref='project', lazy=True, cascade='all, delete-orphan')
     study_sessions = db.relationship('StudySession', backref='project', lazy=True, cascade='all, delete-orphan')
     files = db.relationship('ProjectFile', backref='project', lazy=True, cascade='all, delete-orphan')
+
     
     def get_collaborators(self):
         """Get all collaborators including the owner"""

@@ -192,11 +192,13 @@ def new_project():
             title=title,
             description=description,
             course=course,
+
             status=ProjectStatus(status),
             deadline=deadline,
             user_id=current_user.id
         )
         
+
         db.session.add(project)
         db.session.commit()
         
@@ -305,6 +307,7 @@ def edit_project(project_id):
         project.title = title
         project.description = description
         project.course = course
+
         project.status = ProjectStatus(status)
         project.deadline = deadline
         project.updated_at = datetime.utcnow()
@@ -515,6 +518,13 @@ def delete_project_note(note_id):
 def manage_courses():
     """Manage user courses"""
     courses = Course.query.filter_by(user_id=current_user.id).order_by(Course.year.desc(), Course.semester).all()
+    # Add project count for each course by matching course names
+    for course in courses:
+        course.project_count = Project.query.filter_by(
+            user_id=current_user.id, 
+            course=course.name
+        ).count()
+    
     return render_template('courses.html', courses=courses)
 
 
@@ -1025,3 +1035,20 @@ def not_found_error(error):
 @app.errorhandler(500)
 def internal_error(error):
     return render_template('base.html', error_message="Internal server error"), 500
+
+@app.route("/course/<int:course_id>/delete", methods=["POST"])
+@login_required
+def delete_course(course_id):
+    """Delete a course"""
+    course = Course.query.filter_by(id=course_id, user_id=current_user.id).first()
+    if not course:
+        flash("Course not found.", "error")
+        return redirect(url_for("manage_courses"))
+    
+    course_name = course.name
+    db.session.delete(course)
+    db.session.commit()
+    flash(f"Course \"{course_name}\" deleted successfully!", "success")
+    return redirect(url_for("manage_courses"))
+
+

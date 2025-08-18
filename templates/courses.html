@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Courses - Workflow{% endblock %}
+{% block title %}Courses - Academic Project Tracker{% endblock %}
 
 {% block content %}
 <div class="row mb-4">
@@ -54,10 +54,19 @@
                         {% endif %}
                     </div>
                     <div class="card-footer bg-transparent">
-                        <small class="text-muted">
-                            <i data-feather="folder" class="me-1" style="width: 14px; height: 14px;"></i>
-                            {{ course.projects|length }} projects
-                        </small>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i data-feather="folder" class="me-1" style="width: 14px; height: 14px;"></i>
+                                {{ course.project_count }} projects
+                            </small>
+                            <form method="POST" action="{{ url_for('delete_course', course_id=course.id) }}" 
+                                  onsubmit="return confirm('Are you sure you want to delete this course? This action cannot be undone.')" 
+                                  style="display: inline;">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Course">
+                                    <i data-feather="trash-2" style="width: 14px; height: 14px;"></i>
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
